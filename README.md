@@ -1,11 +1,7 @@
-# MobFogSim
-MobFogSim - Simulation of Mobility and Migration for Fog Computing
+# mySim01
+mySim01
 
-MobFogSim extends iFogSim to enable modeling of device mobility and service migration in fog computing
-
-More details can be found in the following paper: Puliafito, Carlo, et al. "MobFogSim: Simulation of Mobility and Migration for Fog Computing." Simulation Modelling Practice and Theory (2019)
-
-## Running MobFogSim
+## Running mySim01
 
 Building your simulation
 *  First step: Follow the following steps
