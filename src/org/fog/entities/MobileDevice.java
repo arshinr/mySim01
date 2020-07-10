@@ -31,6 +31,10 @@ import org.cloudbus.cloudsim.Vm;
 
 public class MobileDevice extends FogDevice {
 
+	private Vm vmMobileDeviceNext;
+	private FogDevice vmNextServerCloudlet;
+
+	
 	private int direction; // NONE, NORTH, SOUTH, ...
 	private int speed; // in m/s
 	protected Coordinate futureCoord;// = new Coordinate();//myiFogSim
@@ -647,4 +651,22 @@ public class MobileDevice extends FogDevice {
 	public int getNextServerClouletId() {
 		return 1;
 	}
+
+/////////////////////////////////////////////////
+public Vm getVmMobileDeviceNext() {
+return vmMobileDeviceNext;
+}
+
+public void setVmMobileDeviceNext(Vm vmMobileDevice) {
+this.vmMobileDeviceNext = vmMobileDevice;
+}
+
+public FogDevice getVmNextServerCloudlet() {
+	return vmNextServerCloudlet;
+}
+
+public void setVmNextServerCloudlet(FogDevice vmNextServerCloudlet) {
+	this.vmNextServerCloudlet = vmNextServerCloudlet;
+}
+
 }

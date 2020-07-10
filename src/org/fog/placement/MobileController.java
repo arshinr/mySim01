@@ -371,6 +371,10 @@ public class MobileController extends SimEntity {
 				System.out.println(Distances.checkDistance(st.getCoord(), st.getSourceAp()
 					.getCoord()));
 				if (!st.isLockedToHandoff()) {
+					////////
+					sendNow(st.getSourceServerCloudlet().getId(),
+						MobileEvents.MAKE_DECISION_MIGRATION, st);
+					////////
 					double distance = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 						.getCoord());
 
@@ -398,15 +402,15 @@ public class MobileController extends SimEntity {
 									LogMobile.debug("MobileController.java", st.getName()
 										+ " will be desconnected from " +
 										st.getSourceServerCloudlet().getName() + " by handoff");
-									sendNow(st.getSourceServerCloudlet().getId(),
-										MobileEvents.MAKE_DECISION_MIGRATION, st);
+							//		sendNow(st.getSourceServerCloudlet().getId(),
+							//			MobileEvents.MAKE_DECISION_MIGRATION, st);
 									sendNow(st.getSourceServerCloudlet().getId(),
 										MobileEvents.DESCONNECT_ST_TO_SC, st);
 									send(st.getDestinationAp().getServerCloudlet().getId(),
 										handoffTime + delayConnection,
 										MobileEvents.CONNECT_ST_TO_SC, st);
 								}
-								if (st.isPostCopyStatus() && !st.isMigStatus()) {
+						/*		if (st.isPostCopyStatus() && !st.isMigStatus()) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -424,9 +428,9 @@ public class MobileController extends SimEntity {
 										send(st.getVmLocalServerCloudlet().getId(), newMigTime
 											+ delayProcess, MobileEvents.SET_MIG_STATUS_TRUE, st);
 									}
-								}
+								}*/
 							}
-
+							sendNow(st.getVmLocalServerCloudlet().getId(),  MobileEvents.DELIVERY, st);
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);

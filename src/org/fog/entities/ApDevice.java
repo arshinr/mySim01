@@ -49,7 +49,7 @@ public class ApDevice extends FogDevice {
 
 	private void handoff(SimEvent ev, double delay) {
 		MobileDevice smartThing = (MobileDevice) ev.getData();
-
+		smartThing.getVmLocalServerCloudlet().NextVM=false;
 		if (getSmartThings().contains(smartThing)) {
 			// it'll remove the smartThing from ap-smartThing's set
 			smartThing.getSourceAp().setSmartThings(smartThing, Policies.REMOVE);
@@ -88,7 +88,7 @@ public class ApDevice extends FogDevice {
 			smartThing.setMigStatusLive(false);
 		}
 		smartThing.setTimeFinishHandoff(CloudSim.clock());
-
+		
 	}
 
 	public void desconnectApSmartThing(MobileDevice st) {

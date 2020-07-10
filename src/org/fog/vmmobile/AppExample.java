@@ -843,7 +843,7 @@ public class AppExample {
 		}
 		try {
 			coordX = getRand().nextInt(MaxAndMin.MAX_X);
-			coordY = getRand().nextInt(MaxAndMin.MAX_X);
+			coordY = getRand().nextInt(MaxAndMin.MAX_Y);
 			double maxBandwidth = getMaxBandwidth() * 1024 * 1024;
 			double minBandwidth = (getMaxBandwidth() - 1) * 1024 * 1024;
 			double upLinkRandom = minBandwidth
@@ -875,7 +875,7 @@ public class AppExample {
 			* MaxAndMin.CLOUDLET_COVERAGE
 			- (2 * MaxAndMin.CLOUDLET_COVERAGE / 3))) { /* evenly distributed */
 			System.out.println("Creating Server cloudlets");
-			for (coordY = 0; coordY < MaxAndMin.MAX_X; coordY += (2
+			for (coordY = 0; coordY < MaxAndMin.MAX_Y; coordY += (2
 				* MaxAndMin.CLOUDLET_COVERAGE
 				- (2 * MaxAndMin.CLOUDLET_COVERAGE
 				/ 3)), i++) { /* evenly distributed */

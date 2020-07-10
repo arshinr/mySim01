@@ -17,6 +17,7 @@ import java.util.Set;
 
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
+import org.cloudbus.cloudsim.CloudletScheduler;
 import org.cloudbus.cloudsim.Host;
 import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Pe;
@@ -41,6 +42,7 @@ import org.fog.localization.Distances;
 import org.fog.placement.MobileController;
 import org.fog.policy.AppModuleAllocationPolicy;
 import org.fog.scheduler.StreamOperatorScheduler;
+import org.fog.scheduler.TupleScheduler;
 import org.fog.utils.Config;
 import org.fog.utils.FogEvents;
 import org.fog.utils.FogUtils;
@@ -59,7 +61,13 @@ import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MobileEvents;
 import org.fog.vmmobile.constants.Policies;
 
+//import org.fog.scheduler.TupleScheduler;
+import org.fog.application.selectivity.SelectivityModel;
+
 public class FogDevice extends PowerDatacenter {
+	boolean NextVM = false;
+
+	
 	protected Queue<Tuple> northTupleQueue;
 	protected Queue<Pair<Tuple, Integer>> southTupleQueue;
 
@@ -633,6 +641,15 @@ public class FogDevice extends PowerDatacenter {
 		case MobileEvents.SET_MIG_STATUS_TRUE:
 			migStatusToLiveMigration(ev);
 			break;
+		case MobileEvents.MAKE_NEXT_VM:
+			makeNextVM(ev);
+			break;
+		case MobileEvents.MIGRROR:
+			Migrror(ev);
+			break;
+		case MobileEvents.DELIVERY:
+			Delivery(ev);
+			break;
 
 		default:
 			break;
@@ -987,9 +1004,20 @@ public class FogDevice extends PowerDatacenter {
 	}
 
 	private void invokeDecisionMigration(SimEvent ev) {
+		String method = "MIGRROR";
+		MobileController mobileController = (MobileController) CloudSim
+				.getEntity("MobileController");
+		List <FogDevice> a = mobileController.getServerCloudlets();
 		for (MobileDevice st : getSmartThings()) {
 			//Only the connected smartThings
 			if (st.getSourceAp() != null && (!st.isLockedToMigration())) {
+				if (method == "MIGRROR") {
+					if(!NextVM && a.indexOf(st.getVmLocalServerCloudlet()) < a.size()-1) {
+						send(st.getVmLocalServerCloudlet().getId(),0, MobileEvents.MAKE_NEXT_VM, st);
+						send(getNextSC(st).getId(),0, MobileEvents.MIGRROR, st);
+				}}
+				else {
+					
 				if (st.getVmLocalServerCloudlet().getMigrationStrategy().shouldMigrate(st)) {
 					if (!st.getVmLocalServerCloudlet().equals(st.getDestinationServerCloudlet())) {
 						System.out.println("====================ToMigrate================== "
@@ -1020,6 +1048,7 @@ public class FogDevice extends PowerDatacenter {
 				}
 				else {
 					sendNow(getId(), MobileEvents.NO_MIGRATION, st);
+				}
 				}
 			}
 			else {
@@ -1403,6 +1432,7 @@ public class FogDevice extends PowerDatacenter {
 	protected void processTupleArrival(SimEvent ev) {
 		Tuple tuple = (Tuple) ev.getData();
 		MyStatistics.getInstance().setMyCountTotalTuple(1);
+		System.out.println(this.getName()+"+++++++"+" Tuple: "+tuple.getCloudletId());
 
 		boolean flagContinue = false;
 		for (MobileDevice st : MobileController.getSmartThings()) {
@@ -1495,7 +1525,10 @@ public class FogDevice extends PowerDatacenter {
 				tuple.setVmId(vmId);
 				updateTimingsOnReceipt(tuple);
 
+				MobileDevice st = MobileController.getSmartThings().get(0);
+				if(st.getVmLocalServerCloudlet()==this && this != null) {
 				executeTuple(ev, tuple.getDestModuleName());
+					}
 			} else {
 				if (tuple.getDestModuleName() != null) {
 					if (tuple.getDirection() == Tuple.UP)
@@ -1956,5 +1989,135 @@ public class FogDevice extends PowerDatacenter {
 
 	public void setBeforeMigrate(BeforeMigration beforeMigration) {
 		this.beforeMigration = beforeMigration;
+	}
+	public void makeNextVM(SimEvent ev) {
+		MobileDevice st = (MobileDevice) ev.getData();
+		MobileController mobileController = (MobileController) CloudSim
+				.getEntity("MobileController");
+		
+		CloudletScheduler cloudletScheduler = new TupleScheduler(500, 1); 
+		long sizeVm = 128;
+		AppModule vmSmartThingTest = new AppModule(st.getMyId() // id
+			, "AppModuleVm_" + st.getName() // name
+			, "MyApp_vr_game" + st.getMyId() // appId
+			, mobileController.getBrokerList().get(st.getMyId()).getId()// userId
+			, 281 // mips
+			, 128 // (int) sizeVm/3 //ram
+			, 1000 // bw
+			, sizeVm, "Vm_" + st.getName() // vmm
+			, cloudletScheduler,
+			new HashMap<Pair<String, String>, SelectivityModel>());		
+		
+		
+		st.setVmMobileDeviceNext(vmSmartThingTest);
+		st.setDestinationServerCloudlet(getNextSC(st));
+		//st.setVmNextServerCloudlet(st.getDestinationServerCloudlet());
+		st.setDestinationAp(getNextAp(st.getDestinationServerCloudlet()));
+		
+		st.getDestinationServerCloudlet().getHost().vmCreate(vmSmartThingTest);
+
+		System.out.println();
+		NextVM = true;
+		System.out.println("----------New VM Created in ServerCloudlet "+st.getDestinationServerCloudlet().getName());
+		for(FogDevice a:mobileController.getServerCloudlets()) {
+			System.out.println(a.getName()+" : "+a.getHost().getVmList());
+		}
+	}
+	
+	public ApDevice getNextAp(FogDevice fd) {
+		if(fd != null) {
+		for (ApDevice ap : fd.getApDevices()) {
+			if (ap!=null) {
+				return ap;
+			}
+			break;
+		}
+		return null;
+		}
+		return null;
+	}
+	public FogDevice getNextSC(MobileDevice st) {
+		List <FogDevice> a = MobileController.getServerCloudlets();
+		int index = a.indexOf(st.getSourceServerCloudlet());
+		if(index < a.size()-1) {
+		FogDevice NextSC = a.get(index+1);
+				return NextSC;
+				}
+		else {
+			return null;
+		}
+		
+	}
+	
+	public void Migrror(SimEvent ev) {
+		MobileDevice smartThing = (MobileDevice) ev.getData();
+		Application app = smartThing.getVmLocalServerCloudlet().applicationMap.get("MyApp_vr_game"
+			+ smartThing.getMyId());
+		if (app == null) {
+			System.out.println("Clock: " + CloudSim.clock() + " - FogDevice.java - App == Null");
+			System.exit(0);
+		}
+		getApplicationMap().put(app.getAppId(), app);
+//////
+		if (smartThing.getVmLocalServerCloudlet().getApplicationMap().remove(app.getAppId()) == null) {
+			System.out.println("FogDevice.java - applicationMap did not remove. return == null");
+			System.exit(0);
+		}
+		//////
+		MobileController mobileController = (MobileController) CloudSim
+				.getEntity("MobileController");
+
+		if(smartThing.getDestinationServerCloudlet() != null) {
+
+			smartThing.getDestinationServerCloudlet().getApplicationMap().put(app.getAppId(),app);
+			//mobileController.getModuleMapping().addModuleToDevice(
+			//	((AppModule) smartThing.getVmMobileDeviceNext()).getName(), 
+				//	smartThing.getDestinationServerCloudlet().getName(), 1);
+			/////////////////
+			//mobileController.getModuleMapping().addModuleToDevice(
+			//		((AppModule) smartThing.getVmMobileDevice()).getName(), getName(), 1);
+			mobileController.getModuleMapping().addModuleToDevice(
+							((AppModule) smartThing.getVmMobileDeviceNext()).getName(), getName(), 1);
+			
+			saveMigration(smartThing);
+		}
+		mobileController.submitApplicationMigration(smartThing, app, 1);
+		
+		
+		if (!mobileController.getModuleMapping().getModuleMapping().containsKey(getName())) {
+			mobileController.getModuleMapping().getModuleMapping()
+				.put(getName(), new HashMap<String, Integer>());
+			mobileController.getModuleMapping().getModuleMapping().get(getName())
+				.put("AppModuleVm_" + smartThing.getName(), 1);
+		}
+		
+		
+		sendNow(mobileController.getId(), MobileEvents.APP_SUBMIT_MIGRATE, app);
+	}
+	public void Delivery(SimEvent ev) {
+		MobileDevice smartThing = (MobileDevice) ev.getData();
+			
+		smartThing.getVmLocalServerCloudlet().setSmartThingsWithVm(smartThing, Policies.REMOVE);
+		smartThing.setVmLocalServerCloudlet(smartThing.getDestinationServerCloudlet());
+		smartThing.setSourceServerCloudlet(smartThing.getDestinationServerCloudlet());
+		smartThing.setDestinationServerCloudlet(null);
+		smartThing.getVmLocalServerCloudlet().setSmartThingsWithVm(smartThing, Policies.ADD);
+		
+	//	smartThing.setSourceServerCloudlet(this);
+
+		smartThing.setParentId(smartThing.getSourceServerCloudlet().getId());
+		//double latency = smartThing.getUplinkLatency();
+		
+		//NextVM = false;
+
+		smartThing.setTimeFinishDeliveryVm(CloudSim.clock());
+		MyStatistics.getInstance().countMigration();
+		//saveMigration(st);
+		printResults(
+				String.valueOf(NetworkUsageMonitor.getNetworkUsage() / CloudSim.clock()) + '\t'
+					+ String.valueOf(NetworkUsageMonitor.getNetworkUsage()) + '\t' + CloudSim.clock(),
+				"totalNetworkUsageAfterEachHandoff.txt");
+		
+
 	}
 }
