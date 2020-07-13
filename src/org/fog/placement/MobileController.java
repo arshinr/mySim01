@@ -41,6 +41,7 @@ import org.fog.utils.FogUtils;
 import org.fog.utils.ModuleLaunchConfig;
 import org.fog.utils.NetworkUsageMonitor;
 import org.fog.utils.TimeKeeper;
+import org.fog.vmmigration.CompleteVM;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
@@ -253,7 +254,9 @@ public class MobileController extends SimEntity {
 			+ application.getAppId());
 		FogUtils.appIdToGeoCoverageMap.put(application.getAppId(), application.getGeoCoverage());
 		getApplications().put(application.getAppId(), application);
-		FogDevice sc = (FogDevice) CloudSim.getEntity(ev.getSource());
+		FogDevice sc = (FogDevice) CloudSim.getEntity(ev.getSource());		
+		System.out.println("++++++++++++++++++++++++++++++++++Submit Migrate  "+sc.getName());
+		
 		List<FogDevice> tempList = new ArrayList<>();
 		tempList.add(sc);
 		ModulePlacement modulePlacement = new ModulePlacementMapping(tempList
@@ -409,6 +412,9 @@ public class MobileController extends SimEntity {
 									send(st.getDestinationAp().getServerCloudlet().getId(),
 										handoffTime + delayConnection,
 										MobileEvents.CONNECT_ST_TO_SC, st);
+									
+										MyStatistics.getInstance().historyDowntime(st.getMyId(),
+											handoffTime);
 								}
 						/*		if (st.isPostCopyStatus() && !st.isMigStatus()) {
 									if (!st.isMigStatusLive()) {

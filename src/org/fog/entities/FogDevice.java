@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import javax.security.auth.callback.LanguageCallback;
+
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.CloudletScheduler;
@@ -1123,6 +1125,8 @@ public class FogDevice extends PowerDatacenter {
 	 *        SimEvent instance containing the edge to send tuple on
 	 */
 	private void sendPeriodicTuple(SimEvent ev) {
+		System.out.println("---------------------------------------------Fog: "+ this.getName());
+
 		AppEdge edge = (AppEdge) ev.getData();
 		String srcModule = edge.getSource();
 		AppModule module = null;
@@ -1431,9 +1435,18 @@ public class FogDevice extends PowerDatacenter {
 
 	protected void processTupleArrival(SimEvent ev) {
 		Tuple tuple = (Tuple) ev.getData();
+		MobileDevice sst = MobileController.getSmartThings().get(0);
 		MyStatistics.getInstance().setMyCountTotalTuple(1);
-		System.out.println(this.getName()+"+++++++"+" Tuple: "+tuple.getCloudletId());
-
+		if(tuple.getDestModuleName().equals("AppModuleVm_SmartThing0") && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
+			System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+			sst.getDestinationServerCloudlet().processTupleArrival(ev);
+		}
+		if(this == sst.getDestinationServerCloudlet()) {
+			System.out.println(this.getName()+" ========"+" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
+		}
+		if(this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() == null) {
+			System.out.println(this.getName()+" -+-+-+-+"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+		}
 		boolean flagContinue = false;
 		for (MobileDevice st : MobileController.getSmartThings()) {
 			for (Sensor s : st.getSensors()) {
@@ -2016,6 +2029,7 @@ public class FogDevice extends PowerDatacenter {
 		
 		st.getDestinationServerCloudlet().getHost().vmCreate(vmSmartThingTest);
 
+		
 		System.out.println();
 		NextVM = true;
 		System.out.println("----------New VM Created in ServerCloudlet "+st.getDestinationServerCloudlet().getName());
@@ -2074,10 +2088,10 @@ public class FogDevice extends PowerDatacenter {
 			//	((AppModule) smartThing.getVmMobileDeviceNext()).getName(), 
 				//	smartThing.getDestinationServerCloudlet().getName(), 1);
 			/////////////////
-			//mobileController.getModuleMapping().addModuleToDevice(
-			//		((AppModule) smartThing.getVmMobileDevice()).getName(), getName(), 1);
 			mobileController.getModuleMapping().addModuleToDevice(
-							((AppModule) smartThing.getVmMobileDeviceNext()).getName(), getName(), 1);
+					((AppModule) smartThing.getVmMobileDevice()).getName(), getName(), 1);
+			//mobileController.getModuleMapping().addModuleToDevice(
+				//			((AppModule) smartThing.getVmMobileDeviceNext()).getName(), getName(), 1);
 			
 			saveMigration(smartThing);
 		}
