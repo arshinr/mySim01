@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -17,6 +19,7 @@ import java.util.Set;
 
 import javax.security.auth.callback.LanguageCallback;
 
+import org.apache.commons.math3.analysis.function.Sqrt;
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.CloudletScheduler;
@@ -60,6 +63,7 @@ import org.fog.vmmigration.LiveMigration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.Service;
 import org.fog.vmmobile.LogMobile;
+import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
 import org.fog.vmmobile.constants.Policies;
 
@@ -68,7 +72,8 @@ import org.fog.application.selectivity.SelectivityModel;
 
 public class FogDevice extends PowerDatacenter {
 	boolean NextVM = false;
-
+	boolean nextSCInit = false;
+	FogDevice NextSC=null;
 	
 	protected Queue<Tuple> northTupleQueue;
 	protected Queue<Pair<Tuple, Integer>> southTupleQueue;
@@ -1011,12 +1016,16 @@ public class FogDevice extends PowerDatacenter {
 				.getEntity("MobileController");
 		List <FogDevice> a = mobileController.getServerCloudlets();
 		for (MobileDevice st : getSmartThings()) {
+			if(!nextSCInit) {
+				NextSC = getNextSC(st);
+				nextSCInit = true;
+			}
 			//Only the connected smartThings
 			if (st.getSourceAp() != null && (!st.isLockedToMigration())) {
 				if (method == "MIGRROR") {
-					if(!NextVM && a.indexOf(st.getVmLocalServerCloudlet()) < a.size()-1) {
+					if(!NextVM && NextSC!=null) {
 						send(st.getVmLocalServerCloudlet().getId(),0, MobileEvents.MAKE_NEXT_VM, st);
-						send(getNextSC(st).getId(),0, MobileEvents.MIGRROR, st);
+						send(NextSC.getId(),0, MobileEvents.MIGRROR, st);
 				}}
 				else {
 					
@@ -1125,8 +1134,6 @@ public class FogDevice extends PowerDatacenter {
 	 *        SimEvent instance containing the edge to send tuple on
 	 */
 	private void sendPeriodicTuple(SimEvent ev) {
-		System.out.println("---------------------------------------------Fog: "+ this.getName());
-
 		AppEdge edge = (AppEdge) ev.getData();
 		String srcModule = edge.getSource();
 		AppModule module = null;
@@ -1540,7 +1547,7 @@ public class FogDevice extends PowerDatacenter {
 
 				MobileDevice st = MobileController.getSmartThings().get(0);
 				if(st.getVmLocalServerCloudlet()==this && this != null) {
-				executeTuple(ev, tuple.getDestModuleName());
+					executeTuple(ev, tuple.getDestModuleName());
 					}
 			} else {
 				if (tuple.getDestModuleName() != null) {
@@ -2021,9 +2028,8 @@ public class FogDevice extends PowerDatacenter {
 			, cloudletScheduler,
 			new HashMap<Pair<String, String>, SelectivityModel>());		
 		
-		
 		st.setVmMobileDeviceNext(vmSmartThingTest);
-		st.setDestinationServerCloudlet(getNextSC(st));
+		st.setDestinationServerCloudlet(NextSC);
 		//st.setVmNextServerCloudlet(st.getDestinationServerCloudlet());
 		st.setDestinationAp(getNextAp(st.getDestinationServerCloudlet()));
 		
@@ -2032,10 +2038,11 @@ public class FogDevice extends PowerDatacenter {
 		
 		System.out.println();
 		NextVM = true;
-		System.out.println("----------New VM Created in ServerCloudlet "+st.getDestinationServerCloudlet().getName());
+		System.out.println("_____New VM Created in ServerCloudlet "+st.getDestinationServerCloudlet().getName()+"_____\n");
 		for(FogDevice a:mobileController.getServerCloudlets()) {
 			System.out.println(a.getName()+" : "+a.getHost().getVmList());
 		}
+		System.out.println("____________________________________________________________\n");
 	}
 	
 	public ApDevice getNextAp(FogDevice fd) {
@@ -2050,7 +2057,9 @@ public class FogDevice extends PowerDatacenter {
 		}
 		return null;
 	}
-	public FogDevice getNextSC(MobileDevice st) {
+/*	public FogDevice getNextSC(MobileDevice st) {
+		int b = FindInPath(st);
+
 		List <FogDevice> a = MobileController.getServerCloudlets();
 		int index = a.indexOf(st.getSourceServerCloudlet());
 		if(index < a.size()-1) {
@@ -2061,6 +2070,52 @@ public class FogDevice extends PowerDatacenter {
 			return null;
 		}
 		
+	}*/
+	public FogDevice getNextSC(MobileDevice st) {
+		int a = FindInPath(st);
+		int i=0;
+		double dist=MaxAndMin.AP_COVERAGE;
+		List<String[]> s=null;
+		s = st.path.subList(a,st.path.size());
+		for(String p[]:s) {
+			for(FogDevice fd:MobileController.getServerCloudlets()) {
+				if(this!= fd) {
+					double distanceFDST = distance(fd.getCoord().getCoordX(), p[2],fd.getCoord().getCoordY(), p[3]);
+					if(distanceFDST < dist) {
+						if(i+2<s.size()) {
+							String x = s.get(i+2)[2];
+							String y = s.get(i+2)[3];
+							double di = distance(fd.getCoord().getCoordX(), x, fd.getCoord().getCoordY(), y);
+							if(di <= distanceFDST) {
+								return fd;
+							}
+						}
+					}
+				}
+			}
+			i++;
+		}
+		return null;
+	}
+	public double distance(int xx1,String xx2,int yy1,String yy2) {
+		double x1=(xx1);
+		double x2=Double.parseDouble(xx2);
+		double y1=(yy1);
+		double y2=Double.parseDouble(yy2);
+		double out = (Math.pow((x2-x1), 2)+(Math.pow((y2-y1), 2)));
+		return Math.sqrt(out);
+	}
+	
+	public int FindInPath(MobileDevice st) {
+		int i=0;
+		for(String p[]:st.path) {
+			if(Double.parseDouble(p[2]) == st.getCoord().getCoordX() && Double.parseDouble(p[3]) == st.getCoord().getCoordY()) {
+				return i;
+			}
+			i++;
+
+		}
+		return 0;
 	}
 	
 	public void Migrror(SimEvent ev) {
