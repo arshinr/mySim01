@@ -1026,6 +1026,9 @@ public class FogDevice extends PowerDatacenter {
 					if(!NextVM && NextSC!=null) {
 						send(st.getVmLocalServerCloudlet().getId(),0, MobileEvents.MAKE_NEXT_VM, st);
 						send(NextSC.getId(),0, MobileEvents.MIGRROR, st);
+						st.setDestinationServerCloudlet(NextSC);
+						saveMigration(st);
+
 				}}
 				else {
 					
@@ -1443,16 +1446,23 @@ public class FogDevice extends PowerDatacenter {
 	protected void processTupleArrival(SimEvent ev) {
 		Tuple tuple = (Tuple) ev.getData();
 		MobileDevice sst = MobileController.getSmartThings().get(0);
+		if(sst.getVmLocalServerCloudlet() != this) {
+			System.out.println("****************************");
+			double a = getNetworkDelay(sst.getVmLocalServerCloudlet().getId(), this.getId());
+			System.out.println(a);
+			NetworkUsageMonitor.sendingTuple(a, tuple.getCloudletFileSize());
+			System.out.println("****************************");
+		}
 		MyStatistics.getInstance().setMyCountTotalTuple(1);
 		if(tuple.getDestModuleName().equals("AppModuleVm_SmartThing0") && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
-			System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+			System.out.println(this.getName()+" ++++++++"+" AP: " + sst.getSourceAp() +" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
 			sst.getDestinationServerCloudlet().processTupleArrival(ev);
 		}
 		if(this == sst.getDestinationServerCloudlet()) {
-			System.out.println(this.getName()+" ========"+" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
+			System.out.println(this.getName()+" ========"+" AP: " + sst.getSourceAp() +" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
 		}
 		if(this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() == null) {
-			System.out.println(this.getName()+" -+-+-+-+"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+			System.out.println(this.getName()+" -+-+-+-+"+" AP: " + sst.getSourceAp() +" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
 		}
 		boolean flagContinue = false;
 		for (MobileDevice st : MobileController.getSmartThings()) {
@@ -2148,7 +2158,7 @@ public class FogDevice extends PowerDatacenter {
 			//mobileController.getModuleMapping().addModuleToDevice(
 				//			((AppModule) smartThing.getVmMobileDeviceNext()).getName(), getName(), 1);
 			
-			saveMigration(smartThing);
+			//saveMigration(smartThing);
 		}
 		mobileController.submitApplicationMigration(smartThing, app, 1);
 		
