@@ -51,6 +51,8 @@ public class MobileDevice extends FogDevice {
 	private Set<MobileActuator> actuators;// Set of Actuators
 	private float maxServiceValue;
 	private boolean migStatus;
+	private boolean migrrorStatus;
+	
 	private boolean postCopyStatus;
 	private boolean handoffStatus;
 	private boolean lockedToHandoff;
@@ -61,6 +63,8 @@ public class MobileDevice extends FogDevice {
 	private double timeFinishHandoff = 0;
 	private double timeFinishDeliveryVm = 0;
 	private double timeStartLiveMigration = 0;
+	private double timeStartMigrror = 0;
+
 	private boolean status;
 	private boolean migStatusLive;
 	protected VmMigrationTechnique migrationTechnique;
@@ -108,6 +112,7 @@ public class MobileDevice extends FogDevice {
 		setVmMobileDevice(null);
 		setMigTime(0);
 		setMigStatus(false);
+		setMigrrorStatus(false);
 		setMigStatusLive(false);
 		setPostCopyStatus(false);
 		setHandoffStatus(false);
@@ -137,6 +142,7 @@ public class MobileDevice extends FogDevice {
 		setVmMobileDevice(null);
 		setMigTime(0);
 		setMigStatus(false);
+		setMigrrorStatus(false);
 		setMigStatusLive(false);
 		setPostCopyStatus(false);
 
@@ -176,6 +182,7 @@ public class MobileDevice extends FogDevice {
 		setVmMobileDevice(null);
 		setMigTime(0);
 		setMigStatus(false);
+		setMigrrorStatus(false);
 		setMigStatusLive(false);
 		setPostCopyStatus(false);
 
@@ -524,7 +531,14 @@ public class MobileDevice extends FogDevice {
 	public void setMigStatus(boolean migStatus) {
 		this.migStatus = migStatus;
 	}
+	public boolean isMigrrorStatus() {
+		return migrrorStatus;
+	}
 
+	public void setMigrrorStatus(boolean migStatus) {
+		this.migrrorStatus = migStatus;
+	}
+	
 	public boolean isMigStatusLive() {
 		return migStatusLive;
 	}
@@ -643,6 +657,13 @@ public class MobileDevice extends FogDevice {
 
 	public void setTimeStartLiveMigration(double timeStartLiveMigration) {
 		this.timeStartLiveMigration = timeStartLiveMigration;
+	}
+	public double getTimeStartMigrror() {
+		return timeStartMigrror;
+	}
+
+	public void setTimeStartMigrror(double timeStartMigrror) {
+		this.timeStartMigrror = timeStartMigrror;
 	}
 
 	public void setNextServerClouletId(int i) {

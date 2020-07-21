@@ -17,6 +17,7 @@ import java.util.Random;
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.CloudletScheduler;
 import org.cloudbus.cloudsim.CloudletSchedulerTimeShared;
+import org.cloudbus.cloudsim.NetworkTopology;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.SimEntity;
 import org.cloudbus.cloudsim.core.SimEvent;
@@ -41,7 +42,8 @@ import org.fog.utils.FogUtils;
 import org.fog.utils.ModuleLaunchConfig;
 import org.fog.utils.NetworkUsageMonitor;
 import org.fog.utils.TimeKeeper;
-import org.fog.vmmigration.CompleteVM;
+import org.fog.vmmigration.LatencyByDistance;
+import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
@@ -254,9 +256,7 @@ public class MobileController extends SimEntity {
 			+ application.getAppId());
 		FogUtils.appIdToGeoCoverageMap.put(application.getAppId(), application.getGeoCoverage());
 		getApplications().put(application.getAppId(), application);
-		FogDevice sc = (FogDevice) CloudSim.getEntity(ev.getSource());		
-		System.out.println("++++++++++++++++++++++++++++++++++Submit Migrate  "+sc.getName());
-		
+		FogDevice sc = (FogDevice) CloudSim.getEntity(ev.getSource());
 		List<FogDevice> tempList = new ArrayList<>();
 		tempList.add(sc);
 		ModulePlacement modulePlacement = new ModulePlacementMapping(tempList
@@ -354,6 +354,17 @@ public class MobileController extends SimEntity {
 		}
 
 	}
+	private double migrationTimeToMigrror(MobileDevice smartThing) {
+		double runTime = CloudSim.clock() - smartThing.getTimeStartMigrror();
+		if (smartThing.getMigTime() > runTime) {
+			runTime = smartThing.getMigTime() - runTime;
+			return runTime;
+		}
+		else {
+			return 0;
+		}
+
+	}
 
 	private void checkNewStep() {
 		int index = 0;
@@ -368,16 +379,12 @@ public class MobileController extends SimEntity {
 			if (st.getSourceAp() != null) {
 				System.out.println(st.getName() + "\t" + st.getCoord().getCoordX() + "\t"
 					+ st.getCoord().getCoordY());
-				System.out.println(st.getSourceAp().getName() + "\t"
+				System.out.println(st.getVmLocalServerCloudlet().getName() +"\t"+ st.getSourceAp().getName() + "\t"
 					+ st.getSourceAp().getCoord().getCoordX() + "\t"
 					+ st.getSourceAp().getCoord().getCoordY());
 				System.out.println(Distances.checkDistance(st.getCoord(), st.getSourceAp()
 					.getCoord()));
 				if (!st.isLockedToHandoff()) {
-					////////
-					sendNow(st.getSourceServerCloudlet().getId(),
-						MobileEvents.MAKE_DECISION_MIGRATION, st);
-					////////
 					double distance = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 						.getCoord());
 
@@ -405,18 +412,16 @@ public class MobileController extends SimEntity {
 									LogMobile.debug("MobileController.java", st.getName()
 										+ " will be desconnected from " +
 										st.getSourceServerCloudlet().getName() + " by handoff");
-							//		sendNow(st.getSourceServerCloudlet().getId(),
-							//			MobileEvents.MAKE_DECISION_MIGRATION, st);
+									sendNow(st.getSourceServerCloudlet().getId(),
+										MobileEvents.MAKE_DECISION_MIGRATION, st);
 									sendNow(st.getSourceServerCloudlet().getId(),
 										MobileEvents.DESCONNECT_ST_TO_SC, st);
 									send(st.getDestinationAp().getServerCloudlet().getId(),
 										handoffTime + delayConnection,
 										MobileEvents.CONNECT_ST_TO_SC, st);
-									
-										MyStatistics.getInstance().historyDowntime(st.getMyId(),
-											handoffTime);
 								}
-						/*		if (st.isPostCopyStatus() && !st.isMigStatus()) {
+
+								else if (st.isPostCopyStatus() && !st.isMigStatus()) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -434,12 +439,31 @@ public class MobileController extends SimEntity {
 										send(st.getVmLocalServerCloudlet().getId(), newMigTime
 											+ delayProcess, MobileEvents.SET_MIG_STATUS_TRUE, st);
 									}
-								}*/
+								}
 							}
-							sendNow(st.getVmLocalServerCloudlet().getId(),  MobileEvents.DELIVERY, st);
+
+							if(st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 3) {
+								int srcId = getId();
+								int entityId = 0;
+								if(st.getDestinationServerCloudlet()!=null) {
+									entityId = st.getDestinationServerCloudlet().getId();
+								}
+
+								Double delay = 1.0;
+								if (entityId != srcId) {// does not delay self messages
+									delay += getNetworkDelay(srcId, entityId);
+								}
+								if(st.getDestinationServerCloudlet()!= null) {
+									send(st.getVmLocalServerCloudlet().getId(),delay,
+										MobileEvents.DELIVERY_VM, st);
+									}
+							}
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);
+							if(st.getMigrationTechnique() instanceof MIGRROR) {
+							st.setMigTime(handoffLocked);	
+							}
 							MyStatistics.getInstance().setTotalHandoff(1);
 
 							saveHandOff(st);

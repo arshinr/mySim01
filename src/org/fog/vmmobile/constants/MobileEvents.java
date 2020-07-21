@@ -23,9 +23,5 @@ public class MobileEvents {
 	public static final int SET_MIG_STATUS_TRUE = 5019;
 	public static final int MAKE_NEXT_VM = 5020;
 	public static final int MIGRROR = 5021;
-	public static final int DELIVERY = 5022;
-
-
-	
-
+	public static final int START_MIGRROR = 5022;
 }

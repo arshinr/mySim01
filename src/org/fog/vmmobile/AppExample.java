@@ -66,6 +66,7 @@ import org.fog.vmmigration.LiveMigration;
 import org.fog.vmmigration.LowestDistBwSmartThingAP;
 import org.fog.vmmigration.LowestDistBwSmartThingServerCloudlet;
 import org.fog.vmmigration.LowestLatency;
+import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.PrepareCompleteVM;
 import org.fog.vmmigration.PrepareContainerVM;
@@ -139,7 +140,7 @@ public class AppExample {
 		 *  Fourth parameter: 0/1/2 -> Migration strategy approach is based on the lowest latency (0), lowest distance between the user and cloudlet (1), or lowest distance between user and Access Point (2)
 		 *  Fifth parameter: Positive Integer -> Number of users
 		 *  Sixth parameter: Positive Integer -> Base Network Bandwidth between cloudlets
-		 *  Seventh parameter: 0/1/2 -> Migration policy based on Complete VM/Cold migration (0), Complete Container migration (1), or Container Live Migration (3)
+		 *  Seventh parameter: 0/1/2 -> Migration policy based on Complete VM/Cold migration (0), Complete Container migration (1), or Container Live Migration (2), Migrror (3)
 		 *  Eighth parameter: Non Negative Integer -> User Mobility prediction, in seconds
 		 *  Ninth parameter: Non Negative Integer -> User Mobility prediction inaccuracy, in meters
 		 *  Tenth parameter: Positive negative Integer -> Base Network Latency between cloudlets
@@ -179,6 +180,7 @@ public class AppExample {
 		// MIGRATION_COMPLETE_VM = 0;
 		// MIGRATION_CONTAINER_VM = 1;
 		// LIVE_MIGRATION = 2;
+		// MIGRROR = 3;
 		setPolicyReplicaVM(Integer.parseInt(args[6]));
 		setTravelPredicTimeForST(Integer.parseInt(args[7]));
 		setMobilityPredictionError(Integer.parseInt(args[8]));
@@ -673,6 +675,8 @@ public class AppExample {
 			migrationTechnique = new ContainerVM(getMigPointPolicy());
 		} else if (getPolicyReplicaVM() == Policies.LIVE_MIGRATION) {
 			migrationTechnique = new LiveMigration(getMigPointPolicy());
+		}else if (getPolicyReplicaVM() == Policies.MIGRROR) {
+			migrationTechnique = new MIGRROR(getMigPointPolicy());
 		}
 
 		DeterministicDistribution distribution0 = new DeterministicDistribution(
