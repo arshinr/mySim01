@@ -13,7 +13,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
+import java.util.function.DoubleToIntFunction;
 
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
@@ -63,6 +65,8 @@ import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
 import org.fog.vmmobile.constants.Policies;
+import org.fog.vmmigration.Migration;
+
 
 public class FogDevice extends PowerDatacenter {
 	
@@ -916,13 +920,23 @@ public class FogDevice extends PowerDatacenter {
 						smartThing);
 				}
 			}
-
-			float migrationLocked = (smartThing.getVmMobileDevice().getSize() * (smartThing
-				.getSpeed() + 1)) + 20000;
-			if (migrationLocked < smartThing.getTravelPredicTime() * 1000) {
-				migrationLocked = smartThing.getTravelPredicTime() * 1000;
+			MobileController.setRand(new Random(MobileController.getSeed() * Long.MAX_VALUE));
+			float migrationLocked=0;
+			double handoffTime = MaxAndMin.MIN_HANDOFF_TIME
+					+ (MaxAndMin.MAX_HANDOFF_TIME - MaxAndMin.MIN_HANDOFF_TIME)
+					+ 10 * MobileController.getRand().nextDouble();
+				float handoffLocked = (float) (handoffTime * 4);
+			if(getPolicyReplicaVM() == 3) {
+				migrationLocked = handoffLocked;
+			} else {
+				migrationLocked = (smartThing.getVmMobileDevice().getSize() * (smartThing
+						.getSpeed() + 1)) + 20000;
+					if (migrationLocked < smartThing.getTravelPredicTime() * 1000) {
+						migrationLocked = smartThing.getTravelPredicTime() * 1000;
+					}	
 			}
-			send(smartThing.getVmLocalServerCloudlet().getId(),0,// migrationLocked,
+			
+			send(smartThing.getVmLocalServerCloudlet().getId(), migrationLocked,
 				MobileEvents.UNLOCKED_MIGRATION, smartThing);
 			MyStatistics.getInstance().countMigration();
 			MyStatistics.getInstance().historyMigrationTime(smartThing.getMyId(),
@@ -1477,12 +1491,10 @@ public class FogDevice extends PowerDatacenter {
 
 	protected void processTupleArrival(SimEvent ev) {
 		Tuple tuple = (Tuple) ev.getData();
-		MyStatistics.getInstance().setMyCountTotalTuple(1);
-	//	
+		MyStatistics.getInstance().setMyCountTotalTuple(1);		
+		
 		MobileDevice sst = MobileController.getSmartThings().get(0);
-
 		if(getPolicyReplicaVM() == 3) {
-
 
 			if(tuple.getDestModuleName().equals("AppModuleVm_SmartThing0") && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
 				System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
@@ -2108,39 +2120,36 @@ public class FogDevice extends PowerDatacenter {
 		return null;
 	}
 	public FogDevice getNextSC(MobileDevice st) {
+		int index = 0;
 		int a = FindInPath(st);
-		int i=0;
-		double dist = MaxAndMin.AP_COVERAGE;
+		MobileDevice TempST = st;
 		List<String[]> s=null;
-		s = st.path.subList(a,st.path.size());
+		s = TempST.path.subList(a,TempST.path.size());
 		for(String p[]:s) {
-			for(FogDevice fd:MobileController.getServerCloudlets()) {
-				if(this!= fd) {
-					double distanceFDST = distance(fd.getCoord().getCoordX(), p[2],fd.getCoord().getCoordY(), p[3]);
-					if(distanceFDST < dist) {
-						if(i+2<s.size()) {
-							String x = s.get(i+2)[2];
-							String y = s.get(i+2)[3];
-							double di = distance(fd.getCoord().getCoordX(), x, fd.getCoord().getCoordY(), y);
-							if(di <= distanceFDST) {
-								return fd;
-							}
-						}
-					}
+			int x = (int)Math.round(Double.parseDouble(p[2]));
+			int y = (int)Math.round(Double.parseDouble(p[3]));
+
+			TempST.setCoord(x,y);
+			double distance = Distances.checkDistance(TempST.getCoord(), TempST.getSourceAp()
+				.getCoord());
+			if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
+				&& distance < MaxAndMin.AP_COVERAGE) {
+				index = Migration.nextAp(MobileController.getApDevices(), TempST);
+				if (index >= 0) {// index isn't negative
+					return MobileController.getApDevices().get(index).getServerCloudlet();
 				}
 			}
-			i++;
 		}
 		return null;
 	}
-	public double distance(int xx1,String xx2,int yy1,String yy2) {
-		double x1=(xx1);
-		double x2=Double.parseDouble(xx2);
-		double y1=(yy1);
-		double y2=Double.parseDouble(yy2);
-		double out = (Math.pow((x2-x1), 2)+(Math.pow((y2-y1), 2)));
-		return Math.sqrt(out);
-	}
+//	public double distance(int xx1,String xx2,int yy1,String yy2) {
+//		double x1=(xx1);
+//		double x2=Double.parseDouble(xx2);
+//		double y1=(yy1);
+//		double y2=Double.parseDouble(yy2);
+//		double out = (Math.pow((x2-x1), 2)+(Math.pow((y2-y1), 2)));
+//		return Math.sqrt(out);
+//	}
 	
 	public int FindInPath(MobileDevice st) {
 		int i=0;

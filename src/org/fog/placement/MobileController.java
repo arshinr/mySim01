@@ -421,7 +421,7 @@ public class MobileController extends SimEntity {
 										MobileEvents.CONNECT_ST_TO_SC, st);
 								}
 
-								else if (st.isPostCopyStatus() && !st.isMigStatus()) {
+								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -684,8 +684,13 @@ public class MobileController extends SimEntity {
 			printResults(
 				String.valueOf(TimeKeeper.getInstance().getMaxLoopExecutionTime().get(loopId)),
 				"results.txt");
+			try {
 			mediaLatencia += TimeKeeper.getInstance().getLoopIdToCurrentAverage().get(loopId);
 			mediaLatenciaMax += TimeKeeper.getInstance().getMaxLoopExecutionTime().get(loopId);
+			}catch (java.lang.NullPointerException e) {
+				// TODO: handle exception
+				System.out.println("Bobak");
+			}
 		}
 		printResults(
 			String.valueOf(mediaLatencia
