@@ -50,8 +50,13 @@ import org.fog.vmmigration.NextStep;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MobileController extends SimEntity {
+
+	//public static int counter_migrror=0;
+	//public static int counter_Delivery=0;
+	
 	private static boolean migrationAble;
 	private static int migPointPolicy;
 
@@ -402,7 +407,8 @@ public class MobileController extends SimEntity {
 							double handoffTime = MaxAndMin.MIN_HANDOFF_TIME
 								+ (MaxAndMin.MAX_HANDOFF_TIME - MaxAndMin.MIN_HANDOFF_TIME)
 								* getRand().nextDouble();
-							float handoffLocked = (float) (handoffTime * 4);
+							float handoffLocked = (float) (handoffTime * 4)+ 10*(float)(ThreadLocalRandom.current().nextDouble()); 
+;
 							int delayConnection = 100; // connection between SmartT and ServerCloudlet
 
 							if (!st.getDestinationAp().getServerCloudlet()
@@ -868,6 +874,11 @@ public class MobileController extends SimEntity {
 				.getInstance().getMyCountTotalTuple())) * 100 + "%");
 		System.out.println("Tuple lost: " + MyStatistics.getInstance().getMyCountLostTuple());
 		System.out.println("Total tuple: " + MyStatistics.getInstance().getMyCountTotalTuple());
+		
+		//System.out.println("\n\n==========================================");
+		//System.out.println("Counter Migrror: "+counter_migrror);
+		//System.out.println("Counter Delivery: "+counter_Delivery);
+
 
 	}
 
