@@ -1004,8 +1004,8 @@ public class FogDevice extends PowerDatacenter {
 							CloudSim.clock());
 						smartThing.setTimeFinishDeliveryVm(-1.0);
 						// It'll happen according the Migration Time
-						send(smartThing.getVmLocalServerCloudlet().getId(),0// smartThing.getMigTime()
-							, MobileEvents.START_MIGRATION, smartThing);
+						send(smartThing.getVmLocalServerCloudlet().getId(), smartThing.getMigTime()
+							+delayProcess, MobileEvents.START_MIGRATION, smartThing);
 					}
 				}
 					smartThing.setLockedToMigration(true);
@@ -1560,7 +1560,7 @@ public class FogDevice extends PowerDatacenter {
 
 		for (MobileDevice st : getSmartThings()) {
 			if (st.getId() == ev.getSource()) {
-				if ((!st.isHandoffStatus() && !st.isMigStatus() && st.isMigrrorStatus())) {
+				if ((!st.isHandoffStatus() && !st.isMigStatus())) {
 					break;
 				}
 				else {
