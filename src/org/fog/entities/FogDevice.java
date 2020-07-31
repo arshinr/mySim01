@@ -70,7 +70,8 @@ import org.fog.vmmigration.Migration;
 
 public class FogDevice extends PowerDatacenter {
 	
-
+	ArrayList<String> nextSCInitNames = new ArrayList<String>();
+	ArrayList<String> NextVMNames = new ArrayList<String>();;
 	
 	boolean NextVM = false;
 	boolean nextSCInit = false;
@@ -87,6 +88,7 @@ public class FogDevice extends PowerDatacenter {
 	protected Map<Integer, Integer> cloudTrafficMap;
 
 	protected double lockTime;
+	private boolean migrrorFinish=false;
 
 	/**
 	 * ID of the parent Fog Device
@@ -958,6 +960,7 @@ public class FogDevice extends PowerDatacenter {
 			else if (smartThing.getMigrationTechnique() instanceof MIGRROR) {
 				MyStatistics.getInstance().historyDowntime(smartThing.getMyId(),
 					smartThing.getMigTime());
+				smartThing.setMigrrorStatus(false);
 			}
 			smartThing.setTimeFinishDeliveryVm(CloudSim.clock());
 		}
@@ -965,8 +968,8 @@ public class FogDevice extends PowerDatacenter {
 			LogMobile.debug("FogDevice.java", smartThing.getName()
 				+ " was excluded by List of SmartThings! (inside Delivery Vm)");
 		}
-		//if(smartThing.getVmLocalServerCloudlet() == this) {
-	//	MobileController.counter_Delivery++;}
+		nextSCInit = false;
+		NextVM = false;
 	}
 
 	private void invokeNoMigration(SimEvent ev) {
@@ -1001,8 +1004,8 @@ public class FogDevice extends PowerDatacenter {
 							CloudSim.clock());
 						smartThing.setTimeFinishDeliveryVm(-1.0);
 						// It'll happen according the Migration Time
-						send(smartThing.getVmLocalServerCloudlet().getId(), smartThing.getMigTime()
-							+ delayProcess, MobileEvents.START_MIGRATION, smartThing);
+						send(smartThing.getVmLocalServerCloudlet().getId(),0// smartThing.getMigTime()
+							, MobileEvents.START_MIGRATION, smartThing);
 					}
 				}
 					smartThing.setLockedToMigration(true);
@@ -1039,7 +1042,7 @@ public class FogDevice extends PowerDatacenter {
 				smartThing.setTimeFinishDeliveryVm(-1.0);
 				smartThing.setAbortMigration(true);
 				smartThing.setMigrrorStatus(false);
-
+				System.out.println("invokeBeforeMigration");
 			}
 		}
 		else {
@@ -1056,26 +1059,27 @@ public class FogDevice extends PowerDatacenter {
 
 	private void invokeDecisionMigration(SimEvent ev) {
 		for (MobileDevice st : getSmartThings()) {
-			if (getPolicyReplicaVM() == 3) {
-				if(!nextSCInit) {
-					NextSC = getNextSC(st);
-					nextSCInit = true;
-					st.setDestinationServerCloudlet(NextSC);
-					System.out.println("Next SC Created...");
+
+					if (getPolicyReplicaVM() == 3) {
+						if(!nextSCInit) {
+							NextSC = getNextSC(st);
+							nextSCInit = true;
+							System.out.println("Next SC Created...");
+						}
+						if(!NextVM && NextSC!=null) {
+							st.setDestinationServerCloudlet(NextSC);
+							sendNow(st.getVmLocalServerCloudlet().getId(), MobileEvents.MAKE_NEXT_VM, st);
+							sendNow(st.getDestinationServerCloudlet().getId(), MobileEvents.TO_MIGRATION, st);					
+							MyStatistics.getInstance().getInitialWithoutVmTime().remove(st.getMyId());
+							MyStatistics.getInstance().getInitialTimeDelayAfterNewConnection()
+								.remove(st.getMyId());
+							MyStatistics.getInstance().getInitialTimeWithoutConnection()
+								.remove(st.getMyId());
+							st.setLockedToMigration(true);
+							st.setTimeFinishDeliveryVm(-1.0);
+							saveMigration(st);
+						}
 				}
-				if(!NextVM && NextSC!=null) {
-					sendNow(st.getVmLocalServerCloudlet().getId(), MobileEvents.MAKE_NEXT_VM, st);
-					sendNow(st.getDestinationServerCloudlet().getId(), MobileEvents.TO_MIGRATION, st);					
-					MyStatistics.getInstance().getInitialWithoutVmTime().remove(st.getMyId());
-					MyStatistics.getInstance().getInitialTimeDelayAfterNewConnection()
-						.remove(st.getMyId());
-					MyStatistics.getInstance().getInitialTimeWithoutConnection()
-						.remove(st.getMyId());
-					st.setLockedToMigration(true);
-					st.setTimeFinishDeliveryVm(-1.0);
-					saveMigration(st);
-				}
-			}
 			else {
 				//Only the connected smartThings
 				if (st.getSourceAp() != null && (!st.isLockedToMigration())) {
@@ -1498,31 +1502,39 @@ public class FogDevice extends PowerDatacenter {
 		//int o = ind.length();
 		//int i = Integer.parseInt(ind.charAt(0)+"");
 		MobileDevice sst = null;
-
+		int i = 0;
 
 		if(getPolicyReplicaVM() == 3) {
 			if(parts[0].equals("AppModuleVm")){
-				int o = parts[1].length();
-				int i = Integer.parseInt(parts[1].charAt(o-1)+"");
-				if(MobileController.getSmartThings().size()-1 < i) {
-					return;
+				
+				for(MobileDevice md:MobileController.getSmartThings()) {
+					if(md.getName().equals(parts[1])) {
+						sst = md;
+					}
 				}
-				sst = MobileController.getSmartThings().get(i);
-			
-				if(tuple.getDestModuleName().equals("AppModuleVm_"+parts[1]) && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
-					System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
-					sst.getDestinationServerCloudlet().processTupleArrival(ev);
-				}
-				if(this == sst.getDestinationServerCloudlet()) {
-					System.out.println(this.getName()+" ========"+" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
-				}
-				if(this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() == null) {
-					System.out.println(this.getName()+" -+-+-+-+"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
-				}
-				if(sst.getVmLocalServerCloudlet() != this) {
-					System.out.println("\n************* Smart Thing Source AP: "+sst.getSourceAp()+"***************\n");
-					double a = getNetworkDelay(sst.getVmLocalServerCloudlet().getId(), this.getId());
-					NetworkUsageMonitor.sendingTuple(a, tuple.getCloudletFileSize());
+			if(sst!= null) {
+					if(tuple.getDestModuleName().equals("AppModuleVm_"+parts[1]) && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
+						System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+						sst.getDestinationServerCloudlet().processTupleArrival(ev);
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY() + " SimTime " + ev.eventTime());
+					}
+					if(this == sst.getDestinationServerCloudlet()) {
+						System.out.println(this.getName()+" ========"+" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
+	
+					}
+					if(this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() == null) {
+						System.out.println(this.getName()+" -+-+-+-+"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
+	
+					}
+					if(sst.getVmLocalServerCloudlet() != this) {
+						System.out.println("\n************* Smart Thing Source AP: "+sst.getSourceAp()+" "+sst.getVmLocalServerCloudlet().getName()+"***************\n");
+						double a = getNetworkDelay(sst.getVmLocalServerCloudlet().getId(), this.getId());
+						NetworkUsageMonitor.sendingTuple(a, tuple.getCloudletFileSize());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
+	
+					}
 				}
 			}
 		}
@@ -2096,7 +2108,9 @@ public class FogDevice extends PowerDatacenter {
 		MobileDevice st = (MobileDevice) ev.getData();
 		MobileController mobileController = (MobileController) CloudSim
 				.getEntity("MobileController");
-		
+		String name = st.getName() + st.getDestinationServerCloudlet().getName();
+		NextVMNames.add(name);
+
 		CloudletScheduler cloudletScheduler = new TupleScheduler(500, 1); 
 		long sizeVm = 128;
 		AppModule vmSmartThingTest = new AppModule(st.getMyId() // id
@@ -2118,11 +2132,12 @@ public class FogDevice extends PowerDatacenter {
 		st.getDestinationServerCloudlet().getHost().vmCreate(vmSmartThingTest);
 
 		
-		System.out.println();
+		System.out.println("Next VM Created: "+ st.getDestinationServerCloudlet().getName() + " " + vmSmartThingTest.getName());
 		NextVM = true;
-		for(FogDevice a:MobileController.getServerCloudlets()) {
-			System.out.println(a.getName()+" : "+a.getHost().getVmList());
-		}	}
+		//for(FogDevice a:MobileController.getServerCloudlets()) {
+		//	System.out.println(a.getName()+" : "+a.getHost().getVmList());
+		//}	
+		}
 	
 	public ApDevice getNextAp(FogDevice fd) {
 		if(fd != null) {
@@ -2170,10 +2185,22 @@ public class FogDevice extends PowerDatacenter {
 	
 	public int FindInPath(MobileDevice st) {
 		int i=0;
+		double y = 1000000;
 		for(String p[]:st.path) {
-			if(Double.parseDouble(p[2]) == st.getCoord().getCoordX() && Double.parseDouble(p[3]) == st.getCoord().getCoordY()) {
+			double x = Math.abs((Double)(st.getLastProcessTime()/1000) - Double.parseDouble(p[0]));
+			if(x>y) {
+					System.out.println(">>>> X = "+x + "	T:   = "+st.getLastProcessTime());
+					System.out.println(">>>> Y = "+y + " Index :   "+i);
+
+					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+					System.out.println(st.getLastProcessTime()+" Actual Location : "+st.getCoord().getCoordX()+","+st.getCoord().getCoordY());
+					System.out.println(st.path.get(i)[0]+" Pred Location : "+st.path.get(i)[2]+","+st.path.get(i)[3]);
+					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+				
 				return i;
+				
 			}
+			y = Math.abs((Double)(st.getLastProcessTime()/1000) - Double.parseDouble(p[0]));
 			i++;
 
 		}
@@ -2212,12 +2239,12 @@ public class FogDevice extends PowerDatacenter {
 		
 		
 		sendNow(mobileController.getId(), MobileEvents.APP_SUBMIT_MIGRATE, app);
+		System.out.println("MIGRROR DONE");
 	//	if(smartThing.getVmLocalServerCloudlet() == this) {
 	//		mobileController.counter_migrror++;}
 	}
 	private void invokeStartMigrror(SimEvent ev) {
 		MobileDevice smartThing = (MobileDevice) ev.getData();
-
 		// the smartThing is outside of the map
 		if (MobileController.getSmartThings().contains(smartThing)) {
 			if (!smartThing.isAbortMigration()) {
@@ -2253,6 +2280,11 @@ public class FogDevice extends PowerDatacenter {
 				+ " was excluded from List of SmartThings!");
 		}
 	}
-	
+	public void setmigrrorFinish(Boolean a) {
+		migrrorFinish = a;
+	}
+	//public void setNextSCinit(Boolean a) {
+	//	nextSCInit = a;
+	//}
 	
 }

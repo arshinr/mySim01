@@ -56,7 +56,6 @@ public class MobileController extends SimEntity {
 
 	//public static int counter_migrror=0;
 	//public static int counter_Delivery=0;
-	
 	private static boolean migrationAble;
 	private static int migPointPolicy;
 
@@ -71,6 +70,8 @@ public class MobileController extends SimEntity {
 	private static List<ApDevice> apDevices;
 	private static List<FogBroker> brokerList;
 
+	private static ArrayList<String> STSC;
+	
 	private Map<String, Application> applications;
 	private Map<String, Integer> appLaunchDelays;
 	private ModuleMapping moduleMapping;
@@ -79,7 +80,7 @@ public class MobileController extends SimEntity {
 	static final int numOfDepts = 1;
 	static final int numOfMobilesPerDept = 4;
 	private static Random rand;
-
+	public static List <String> OldSC = null;
 	public MobileController() {
 
 	}
@@ -467,6 +468,11 @@ public class MobileController extends SimEntity {
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);
+							
+							
+							System.out.println("HANDOFF DONE");
+
+							
 							if(st.getMigrationTechnique() instanceof MIGRROR) {
 							st.setMigTime(handoffLocked);	
 							}
@@ -1056,5 +1062,26 @@ public class MobileController extends SimEntity {
 	public static void setMigrationAble(boolean migrationAble) {
 		MobileController.migrationAble = migrationAble;
 	}
-
+	public static void addSTSC(String STSC) {
+		try {
+			MobileController.STSC.add(STSC);
+		}catch(java.lang.NullPointerException a) {
+			
+		}
+	}
+	public static void removeSTSC(String STSC) {
+		MobileController.STSC.remove(STSC);
+	}
+	public static boolean hasSTSC(String STSC) {
+		boolean has;
+		try {
+		has = MobileController.STSC.contains(STSC);
+		}catch (java.lang.NullPointerException e) {
+			return false;
+		}
+		if(has) {
+			return true;
+		}
+		return false;
+	}
 }
