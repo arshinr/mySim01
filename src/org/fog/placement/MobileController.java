@@ -1,6 +1,8 @@
 package org.fog.placement;
 
+import java.awt.image.ReplicateScaleFilter;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,6 +49,7 @@ import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
+import org.fog.vmmobile.AppExample;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
@@ -336,6 +339,7 @@ public class MobileController extends SimEntity {
 			printCostDetails();
 			printNetworkUsageDetails();
 			printMigrationsDetalis();
+			MakeOutFile();
 			System.exit(0);
 			break;
 
@@ -1083,5 +1087,28 @@ public class MobileController extends SimEntity {
 			return true;
 		}
 		return false;
+	}
+	private void MakeOutFile() {
+		String OutFileName = "ravesh.txt";
+		File tempFile = new File(OutFileName);
+		boolean exists = tempFile.exists();
+		if(!exists) {
+			printResults("Method	Total Network Usage"+ '\t'
+				+ "Average Delay After New Connection"+ '\t'+"Lost Tuple (%)"+ '\t'+"Average Downtime", OutFileName);
+			printResults(AppExample.getPolicyReplicaVM()+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
+					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
+					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
+					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())),
+					OutFileName);
+		}
+		else {
+		printResults(AppExample.getPolicyReplicaVM()+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
+					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
+					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
+					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())),
+					OutFileName);
+		}
 	}
 }
