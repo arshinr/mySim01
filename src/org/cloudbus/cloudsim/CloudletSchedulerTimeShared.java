@@ -116,11 +116,17 @@ public class CloudletSchedulerTimeShared extends CloudletScheduler {
 	protected double getCapacity(List<Double> mipsShare) {
 		double capacity = 0.0;
 		int cpus = 0;
+		try {
 		for (Double mips : mipsShare) {
 			capacity += mips;
 			if (mips > 0.0) {
 				cpus++;
 			}
+		}
+		}
+		catch (java.lang.NullPointerException a) {
+			// TODO: handle exception
+			System.out.println("CONNECTING...");
 		}
 		currentCPUs = cpus;
 
