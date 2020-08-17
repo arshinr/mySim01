@@ -11,7 +11,7 @@ do
 	for predict in 0
 	do
 		mkdir ${filename%.*}
-			java -Xmx10g -Dfile.encoding=Cp1252 -classpath ".\bin;.\jars\cloudsim-3.0.3.jar;.\jars\cloudsim-3.0.3-sources.jar;.\jars\cloudsim-examples-3.0.3.jar;.\jars\cloudsim-examples-3.0.3-sources.jar;.\jars\guava-18.0.jar;.\jars\json-simple-1.1.1.jar;.\jars\junit.jar;.\jars\org.hamcrest.core_1.3.0.v201303031735.jar;.\jars\commons-math3-3.5\commons-math3-3.5.jar" org.fog.vmmobile.AppExample 1 $seed 0 0 1 11 2 $predict 0 61
+			java -Xmx10g -Dfile.encoding=UTF-8 -classpath bin:jars/cloudsim-3.0.3-sources.jar:jars/cloudsim-3.0.3.jar:jars/cloudsim-examples-3.0.3-sources.jar:jars/cloudsim-examples-3.0.3.jar:jars/commons-math3-3.5/commons-math3-3.5.jar:jars/guava-18.0.jar:jars/json-simple-1.1.1.jar:jars/junit.jar:jars/org.hamcrest.core_1.3.0.v201303031735.jar org.fog.vmmobile.AppExample 1 $seed 0 0 1 11 2 $predict 0 61
 #		touch a.txt
 		rm out.txt 0out.txt
 		mv *.txt ${filename%.*}
@@ -19,7 +19,7 @@ do
 		mv ${filename%.*} out/Migrrora/$predict
 
         	mkdir ${filename%.*}
-			java -Xmx10g -Dfile.encoding=Cp1252 -classpath ".\bin;.\jars\cloudsim-3.0.3.jar;.\jars\cloudsim-3.0.3-sources.jar;.\jars\cloudsim-examples-3.0.3.jar;.\jars\cloudsim-examples-3.0.3-sources.jar;.\jars\guava-18.0.jar;.\jars\json-simple-1.1.1.jar;.\jars\junit.jar;.\jars\org.hamcrest.core_1.3.0.v201303031735.jar;.\jars\commons-math3-3.5\commons-math3-3.5.jar" org.fog.vmmobile.AppExample 1 $seed 0 0 1 74 2 $predict 0 3
+			java -Xmx10g -Dfile.encoding=UTF-8 -classpath bin:jars/cloudsim-3.0.3-sources.jar:jars/cloudsim-3.0.3.jar:jars/cloudsim-examples-3.0.3-sources.jar:jars/cloudsim-examples-3.0.3.jar:jars/commons-math3-3.5/commons-math3-3.5.jar:jars/guava-18.0.jar:jars/json-simple-1.1.1.jar:jars/junit.jar:jars/org.hamcrest.core_1.3.0.v201303031735.jar org.fog.vmmobile.AppExample 1 $seed 0 0 1 74 2 $predict 0 3
 		rm out.txt 0out.txt
 #		touch a.txt
 	        mv *.txt ${filename%.*}
@@ -43,7 +43,7 @@ do
 #	        mv ${filename%.*} out/dockerb/$predict
 
 	        mkdir ${filename%.*}
-			java -Xmx10g -Dfile.encoding=Cp1252 -classpath ".\bin;.\jars\cloudsim-3.0.3.jar;.\jars\cloudsim-3.0.3-sources.jar;.\jars\cloudsim-examples-3.0.3.jar;.\jars\cloudsim-examples-3.0.3-sources.jar;.\jars\guava-18.0.jar;.\jars\json-simple-1.1.1.jar;.\jars\junit.jar;.\jars\org.hamcrest.core_1.3.0.v201303031735.jar;.\jars\commons-math3-3.5\commons-math3-3.5.jar" org.fog.vmmobile.AppExample 1 $seed 0 0 1 11 3 $predict 0 61
+			java -Xmx10g -Dfile.encoding=UTF-8 -classpath bin:jars/cloudsim-3.0.3-sources.jar:jars/cloudsim-3.0.3.jar:jars/cloudsim-examples-3.0.3-sources.jar:jars/cloudsim-examples-3.0.3.jar:jars/commons-math3-3.5/commons-math3-3.5.jar:jars/guava-18.0.jar:jars/json-simple-1.1.1.jar:jars/junit.jar:jars/org.hamcrest.core_1.3.0.v201303031735.jar org.fog.vmmobile.AppExample 1 $seed 0 0 1 11 3 $predict 0 61
 		rm out.txt 0out.txt
 #		touch a.txt
 	        mv *.txt ${filename%.*}
@@ -51,7 +51,7 @@ do
 	        mv ${filename%.*} out/livea/$predict
 
 	        mkdir ${filename%.*}
-			java -Xmx10g -Dfile.encoding=Cp1252 -classpath ".\bin;.\jars\cloudsim-3.0.3.jar;.\jars\cloudsim-3.0.3-sources.jar;.\jars\cloudsim-examples-3.0.3.jar;.\jars\cloudsim-examples-3.0.3-sources.jar;.\jars\guava-18.0.jar;.\jars\json-simple-1.1.1.jar;.\jars\junit.jar;.\jars\org.hamcrest.core_1.3.0.v201303031735.jar;.\jars\commons-math3-3.5\commons-math3-3.5.jar" org.fog.vmmobile.AppExample 1 $seed 0 0 1 74 3 $predict 0 3
+			java -Xmx10g -Dfile.encoding=UTF-8 -classpath bin:jars/cloudsim-3.0.3-sources.jar:jars/cloudsim-3.0.3.jar:jars/cloudsim-examples-3.0.3-sources.jar:jars/cloudsim-examples-3.0.3.jar:jars/commons-math3-3.5/commons-math3-3.5.jar:jars/guava-18.0.jar:jars/json-simple-1.1.1.jar:jars/junit.jar:jars/org.hamcrest.core_1.3.0.v201303031735.jar org.fog.vmmobile.AppExample 1 $seed 0 0 1 74 3 $predict 0 3
 		rm out.txt 0out.txt
 #		touch a.txt
         	mv *.txt ${filename%.*}

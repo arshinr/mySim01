@@ -1,11 +1,4 @@
 
 *.txt
-*.class
-averages/all_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-averages/delayAfterConnection_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-averages/downtime_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-averages/timeOfMigration_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-averages/withoutConnection_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-averages/withoutVM_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY
-bin/org/cloudbus/cloudsim/CloudletSchedulerTimeShared.class
-outputLatencies/0/latencies_FIXED_MIGRATION_POINT_with_LOWEST_LATENCY_seed_290538_st_0.txt
+*.csv
+*.txt
