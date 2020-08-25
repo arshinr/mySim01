@@ -68,6 +68,7 @@ import org.fog.vmmigration.LowestDistBwSmartThingServerCloudlet;
 import org.fog.vmmigration.LowestLatency;
 import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.MyStatistics;
+import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmigration.PrepareCompleteVM;
 import org.fog.vmmigration.PrepareContainerVM;
 import org.fog.vmmigration.PrepareLiveMigration;
@@ -107,6 +108,9 @@ public class AppExample {
 	static final int numOfMobilesPerDept = 4;
 	static final double EEG_TRANSMISSION_TIME = 10;
 
+	public static String arg = "";
+
+	
 	/**
 	 * @param args
 	 * @author Marcio Moraes Lopes
@@ -186,6 +190,12 @@ public class AppExample {
 		setMobilityPredictionError(Integer.parseInt(args[8]));
 		setLatencyBetweenCloudlets(Double.parseDouble(args[9]));
 
+		
+		for(int i=0;i<10;i++) {
+			arg+=" "+args[i];
+		}
+		
+		
 		/**
 		 * STEP 2: CREATE ALL DEVICES -> example from: CloudSim - example5.java
 		 **/
@@ -677,7 +687,9 @@ public class AppExample {
 			migrationTechnique = new LiveMigration(getMigPointPolicy());
 		}else if (getPolicyReplicaVM() == Policies.MIGRROR) {
 			migrationTechnique = new MIGRROR(getMigPointPolicy());
-		}
+		}else if (getPolicyReplicaVM() == Policies.PRECOPYLIVE) {
+			migrationTechnique = new PRECOPYLIVE(getMigPointPolicy());
+			}
 
 		DeterministicDistribution distribution0 = new DeterministicDistribution(
 			EEG_TRANSMISSION_TIME);// +(i*getRand().nextDouble()));

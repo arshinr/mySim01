@@ -68,6 +68,7 @@ public class MobileDevice extends FogDevice {
 	private boolean status;
 	private boolean migStatusLive;
 	protected VmMigrationTechnique migrationTechnique;
+	private boolean PreCopyStatus;
 
 	@Override
 	public int hashCode() {
@@ -316,6 +317,7 @@ public class MobileDevice extends FogDevice {
 		}
 
 		if ((isMigStatus() || isHandoffStatus())) {
+			MobileController.CalcLostTupleVol(tuple);
 			MyStatistics.getInstance().setMyCountLostTuple(1);
 			saveLostTupple(String.valueOf(CloudSim.clock()), tuple.getUserId() + "mdlostTupple.txt");
 			return;
@@ -688,6 +690,12 @@ public FogDevice getVmNextServerCloudlet() {
 
 public void setVmNextServerCloudlet(FogDevice vmNextServerCloudlet) {
 	this.vmNextServerCloudlet = vmNextServerCloudlet;
+}
+public void setPreCopy(boolean a) {
+	PreCopyStatus = a;
+}
+public boolean getPreCopy() {
+	return PreCopyStatus;
 }
 
 }

@@ -36,6 +36,7 @@ import org.fog.entities.MobileActuator;
 import org.fog.entities.MobileDevice;
 import org.fog.entities.MobileSensor;
 import org.fog.entities.Sensor;
+import org.fog.entities.Tuple;
 import org.fog.localization.Coordinate;
 import org.fog.localization.Distances;
 import org.fog.utils.Config;
@@ -49,6 +50,7 @@ import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
+import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmobile.AppExample;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
@@ -84,6 +86,11 @@ public class MobileController extends SimEntity {
 	static final int numOfMobilesPerDept = 4;
 	private static Random rand;
 	public static List <String> OldSC = null;
+	public static double LostTupleVol=0;
+	public static double SumBandwidth = 0;
+	public static double SumDelayBet = 0;
+	
+	
 	public MobileController() {
 
 	}
@@ -397,6 +404,19 @@ public class MobileController extends SimEntity {
 				if (!st.isLockedToHandoff()) {
 					double distance = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 						.getCoord());
+					
+					if(AppExample.getPolicyReplicaVM() == 4) {
+						FogDevice NSC = st.getNextSC(st);
+						if(NSC!=null) {
+							double distanceNext = Distances.checkDistance(st.getCoord(), st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st))
+									.getCoord());
+							if(distanceNext < MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && !st.getPreCopy()) {
+								st.setPreCopy(true);
+								System.out.println("Location when PreCopy Start: "+ st.getCoord().getCoordX()+" "+st.getCoord().getCoordY());
+								System.out.println("Next AP Location: " +st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getName() + " "+ st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX()+" "+st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX());
+							}
+						}
+					}
 
 					System.out.println("Distance " + distance + "Diff "
 						+ (MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF) + " max "
@@ -432,7 +452,7 @@ public class MobileController extends SimEntity {
 										MobileEvents.CONNECT_ST_TO_SC, st);
 								}
 
-								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3) {
+								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3 && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 4) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -453,7 +473,7 @@ public class MobileController extends SimEntity {
 								}
 							}
 
-							if(st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 3) {
+							if(st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 3 || st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 4) {
 								int srcId = getId();
 								int entityId = 0;
 								if(st.getDestinationServerCloudlet()!=null) {
@@ -469,15 +489,23 @@ public class MobileController extends SimEntity {
 										MobileEvents.DELIVERY_VM, st);
 									}
 							}
+							if(AppExample.getPolicyReplicaVM()==4) {
+								SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
+								if(st.getDestinationServerCloudlet()!=null) {
+								SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
+								}
+								handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection()/1000;
+							}
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);
-							
+							st.setPreCopy(false);
+
 							
 							System.out.println("HANDOFF DONE");
 
 							
-							if(st.getMigrationTechnique() instanceof MIGRROR) {
+							if(st.getMigrationTechnique() instanceof MIGRROR || st.getMigrationTechnique() instanceof PRECOPYLIVE) {
 							st.setMigTime(handoffLocked);	
 							}
 							MyStatistics.getInstance().setTotalHandoff(1);
@@ -1089,26 +1117,53 @@ public class MobileController extends SimEntity {
 		return false;
 	}
 	private void MakeOutFile() {
-		String OutFileName = "ravesh.txt";
+		String directoryName = "ravesh";
+	    File directory = new File(directoryName);
+	    if (! directory.exists()){
+	        directory.mkdir();
+	    }
+		
+		String OutFileName = "ravesh/ravesh.txt";
 		File tempFile = new File(OutFileName);
 		boolean exists = tempFile.exists();
 		if(!exists) {
 			printResults("Method	Total Network Usage"+ '\t'
-				+ "Average Delay After New Connection"+ '\t'+"Lost Tuple (%)"+ '\t'+"Average Downtime", OutFileName);
-			printResults(AppExample.getPolicyReplicaVM()+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
+				+ "Average Delay After New Connection"+ '\t'+"Lost Tuple (%)"+ '\t'+"Average Downtime"+'\t'+ "Input Parameters ", OutFileName);
+			printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
 					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
 					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
 					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
-					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())),
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg),
 					OutFileName);
 		}
 		else {
-		printResults(AppExample.getPolicyReplicaVM()+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
+		printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
 					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
 					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
 					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
-					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())),
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg),
 					OutFileName);
 		}
+	}
+	public static void CalcLostTupleVol(Tuple tp) {
+		LostTupleVol+=tp.getCloudletOutputSize();
+	}
+	public double getLostTupleVol() {
+		return LostTupleVol;
+	}
+	public static String migmethod(int a) {
+		switch (a) {
+		case 0:
+			return "MIGRATION_COMPLETE_VM";
+		case 1:
+			return "MIGRATION_CONTAINER_VM";
+		case 2:
+			return "LIVE_MIGRATION";
+		case 3:
+			return "MIGRROR";
+		case 4:
+			return "PRECOPYLIVE";
+		}
+		return null;
 	}
 }
