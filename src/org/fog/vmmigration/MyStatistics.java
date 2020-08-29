@@ -211,7 +211,7 @@ public class MyStatistics {
 			//setAverageDelayAfterNewConnection((correntAverage * correntCount + delay)
 			//	/ (correntCount + 1));
 			if(AppExample.getPolicyReplicaVM() == 4) {
-				double plus = ((((MobileController.LostTupleVol)/(correntCount+1))/MobileController.SumBandwidth/(getMyCountLowestLatency()+1))+MobileController.SumDelayBet/(getMyCountLowestLatency()+1));//*1000;
+				double plus = ((((MobileController.LostTupleVol)/(correntCount+1))/MobileController.SumBandwidth/(getMyCountLowestLatency()+1))+MobileController.SumDelayBet/(getMyCountLowestLatency()+1))*1000;
 				System.out.println("LostTupleVol : "+ MobileController.LostTupleVol);
 				System.out.println("SumBandwidth : "+ MobileController.SumBandwidth);
 				System.out.println("MyCountLowestLatency() : "+ getMyCountLowestLatency());

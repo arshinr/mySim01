@@ -410,7 +410,7 @@ public class MobileController extends SimEntity {
 						if(NSC!=null) {
 							double distanceNext = Distances.checkDistance(st.getCoord(), st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st))
 									.getCoord());
-							if(distanceNext < MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && !st.getPreCopy()) {
+							if(distanceNext >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && distance < MaxAndMin.AP_COVERAGE && !st.getPreCopy()) {
 								st.setPreCopy(true);
 								System.out.println("Location when PreCopy Start: "+ st.getCoord().getCoordX()+" "+st.getCoord().getCoordY());
 								System.out.println("Next AP Location: " +st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getName() + " "+ st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX()+" "+st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX());
@@ -421,8 +421,8 @@ public class MobileController extends SimEntity {
 					System.out.println("Distance " + distance + "Diff "
 						+ (MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF) + " max "
 						+ MaxAndMin.AP_COVERAGE);
-					if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
-						&& distance < MaxAndMin.AP_COVERAGE) {
+					if ((distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
+						&& distance < MaxAndMin.AP_COVERAGE)) {
 						index = Migration.nextAp(getApDevices(), st);
 						if (index >= 0) {// index isn't negative
 							st.setDestinationAp(getApDevices().get(index));
@@ -492,9 +492,9 @@ public class MobileController extends SimEntity {
 							if(AppExample.getPolicyReplicaVM()==4) {
 								SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
 								if(st.getDestinationServerCloudlet()!=null) {
-								SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
+								//SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
 								}
-								handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection()/1000;
+								handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection();///1000;
 							}
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,

@@ -17,7 +17,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
-import org.cloudbus.cloudsim.sdn.graph.core.Coordinates;
 
 /** Panel that displays a graph */
 public class GraphView extends JPanel {
