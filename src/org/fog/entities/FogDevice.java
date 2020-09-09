@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.DoubleToIntFunction;
 
 import org.apache.commons.math3.util.Pair;
 import org.cloudbus.cloudsim.Cloudlet;
@@ -59,14 +60,13 @@ import org.fog.vmmigration.DecisionMigration;
 import org.fog.vmmigration.LiveMigration;
 import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.MyStatistics;
-import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmigration.Service;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
 import org.fog.vmmobile.constants.Policies;
 import org.fog.vmmigration.Migration;
-
+import org.fog.vmmigration.PRECOPYLIVE;
 
 public class FogDevice extends PowerDatacenter {
 	
@@ -966,7 +966,6 @@ public class FogDevice extends PowerDatacenter {
 				MyStatistics.getInstance().historyDowntime(smartThing.getMyId(),
 					smartThing.getMigTime());
 				smartThing.setMigrrorStatus(false);
-				smartThing.setPreCopy(false);
 			}
 			smartThing.setTimeFinishDeliveryVm(CloudSim.clock());
 		}
@@ -995,62 +994,65 @@ public class FogDevice extends PowerDatacenter {
 		MobileDevice smartThing = (MobileDevice) ev.getData();
 		if (MobileController.getSmartThings().contains(smartThing)) {
 			// the smartThing isn't connected in any ap right now
-			if (smartThing.getSourceAp() != null && !smartThing.isMigStatus()) {
-				if(getPolicyReplicaVM() != Policies.MIGRROR && getPolicyReplicaVM() != Policies.PRECOPYLIVE) {
-					double delayProcess = getBeforeMigrate().dataprepare(smartThing);
-					System.out.println("delayProcess" + delayProcess);
-				if (delayProcess >= 0) {
-					if (getPolicyReplicaVM() == Policies.LIVE_MIGRATION) {
-						smartThing.setPostCopyStatus(true);
-						smartThing.setTimeStartLiveMigration(CloudSim.clock());
-					}
-					else {
-						smartThing.setMigStatus(true);
-						MyStatistics.getInstance().startWithoutVmTime(smartThing.getMyId(),
-							CloudSim.clock());
-						smartThing.setTimeFinishDeliveryVm(-1.0);
-						// It'll happen according the Migration Time
-						send(smartThing.getVmLocalServerCloudlet().getId(), smartThing.getMigTime()+delayProcess
-								, MobileEvents.START_MIGRATION, smartThing);
-					}
-				}
-					smartThing.setLockedToMigration(true);
-				}
-				else if(getPolicyReplicaVM() == Policies.MIGRROR || getPolicyReplicaVM() == Policies.PRECOPYLIVE) {
-					if (!smartThing.isMigrrorStatus()) {
+			if(getPolicyReplicaVM() != Policies.MIGRROR && getPolicyReplicaVM() != Policies.PRECOPYLIVE) {
 
-						smartThing.setMigrrorStatus(true);
-						smartThing.setTimeStartMigrror(CloudSim.clock());
-
-						double delayProcess = smartThing.getVmLocalServerCloudlet()
-							.getCharacteristics().getCpuTime((smartThing.getVmMobileDevice()
-								.getSize() * 1024 * 1024 * 8) * 0.7, 0.0);// the connection already opened
-						smartThing.setTimeFinishDeliveryVm(-1.0);
-						MyStatistics.getInstance().startWithoutVmTime(
-								smartThing.getMyId(),CloudSim.clock());
-						send(smartThing.getVmLocalServerCloudlet().getId(), 0
-							, MobileEvents.START_MIGRROR, smartThing);
+				if (smartThing.getSourceAp() != null && !smartThing.isMigStatus()) {
+						double delayProcess = getBeforeMigrate().dataprepare(smartThing);
+						System.out.println("delayProcess" + delayProcess);
+					if (delayProcess >= 0) {
+						if (getPolicyReplicaVM() == Policies.LIVE_MIGRATION) {
+							smartThing.setPostCopyStatus(true);
+							smartThing.setTimeStartLiveMigration(CloudSim.clock());
+						}
+						else {
+							smartThing.setMigStatus(true);
+							MyStatistics.getInstance().startWithoutVmTime(smartThing.getMyId(),
+								CloudSim.clock());
+							smartThing.setTimeFinishDeliveryVm(-1.0);
+							// It'll happen according the Migration Time
+							send(smartThing.getVmLocalServerCloudlet().getId(), smartThing.getMigTime()+delayProcess
+									, MobileEvents.START_MIGRATION, smartThing);
+						}
 					}
+						smartThing.setLockedToMigration(true);
+				}
+				else {
+					sendNow(smartThing.getVmLocalServerCloudlet().getId(), MobileEvents.NO_MIGRATION,
+						smartThing);
+					MyStatistics.getInstance().getInitialWithoutVmTime().remove(smartThing.getMyId());
+					MyStatistics.getInstance().getInitialTimeDelayAfterNewConnection()
+						.remove(smartThing.getMyId());
+					MyStatistics.getInstance().getInitialTimeWithoutConnection()
+						.remove(smartThing.getMyId());
+					smartThing.setMigStatus(false);
+					smartThing.setPostCopyStatus(false);
+					smartThing.setMigStatusLive(false);
+					smartThing.setLockedToMigration(false);
+					smartThing.setTimeFinishDeliveryVm(-1.0);
+					smartThing.setAbortMigration(true);
+					smartThing.setMigrrorStatus(false);
+					System.out.println("invokeBeforeMigration");
 				}
 			}
-			else {
-				sendNow(smartThing.getVmLocalServerCloudlet().getId(), MobileEvents.NO_MIGRATION,
-					smartThing);
-				MyStatistics.getInstance().getInitialWithoutVmTime().remove(smartThing.getMyId());
-				MyStatistics.getInstance().getInitialTimeDelayAfterNewConnection()
-					.remove(smartThing.getMyId());
-				MyStatistics.getInstance().getInitialTimeWithoutConnection()
-					.remove(smartThing.getMyId());
-				smartThing.setMigStatus(false);
-				smartThing.setPostCopyStatus(false);
-				smartThing.setMigStatusLive(false);
-				smartThing.setLockedToMigration(false);
-				smartThing.setTimeFinishDeliveryVm(-1.0);
-				smartThing.setAbortMigration(true);
-				smartThing.setMigrrorStatus(false);
-				System.out.println("invokeBeforeMigration");
+			else if(smartThing.getSourceAp() != null && !smartThing.isMigrrorStatus()) {
+				if(getPolicyReplicaVM() == Policies.MIGRROR || getPolicyReplicaVM() == Policies.PRECOPYLIVE) {
+				if (!smartThing.isMigrrorStatus()) {
+
+					smartThing.setMigrrorStatus(true);
+					smartThing.setTimeStartMigrror(CloudSim.clock());
+
+					double delayProcess = smartThing.getVmLocalServerCloudlet()
+						.getCharacteristics().getCpuTime((smartThing.getVmMobileDevice()
+							.getSize() * 1024 * 1024 * 8) * 0.7, 0.0);// the connection already opened
+					smartThing.setTimeFinishDeliveryVm(-1.0);
+					MyStatistics.getInstance().startWithoutVmTime(
+							smartThing.getMyId(),CloudSim.clock());
+					send(smartThing.getVmLocalServerCloudlet().getId(), 0
+						, MobileEvents.START_MIGRROR, smartThing);
+				}
 			}
-		}
+			}
+			}
 		else {
 			sendNow(smartThing.getVmLocalServerCloudlet().getId(), MobileEvents.ABORT_MIGRATION,
 				smartThing);
@@ -1066,7 +1068,7 @@ public class FogDevice extends PowerDatacenter {
 	private void invokeDecisionMigration(SimEvent ev) {
 		for (MobileDevice st : getSmartThings()) {
 
-					if (getPolicyReplicaVM() == 3) {
+					if (getPolicyReplicaVM() == 3 || (getPolicyReplicaVM() == 4 && st.getPreCopy())) {
 						if(!nextSCInit) {
 							NextSC = getNextSC(st);
 							nextSCInit = true;
@@ -1085,30 +1087,7 @@ public class FogDevice extends PowerDatacenter {
 							st.setTimeFinishDeliveryVm(-1.0);
 							saveMigration(st);
 						}
-					}
-					else if(getPolicyReplicaVM() == 4) {
-						if(st.getPreCopy()) {
-							if(!nextSCInit) {
-								NextSC = getNextSC(st);
-								nextSCInit = true;
-								System.out.println("Next SC Created...");
-							}
-							if(!NextVM && NextSC!=null) {
-								st.setDestinationServerCloudlet(NextSC);
-								sendNow(st.getVmLocalServerCloudlet().getId(), MobileEvents.MAKE_NEXT_VM, st);
-								sendNow(st.getDestinationServerCloudlet().getId(), MobileEvents.TO_MIGRATION, st);					
-								MyStatistics.getInstance().getInitialWithoutVmTime().remove(st.getMyId());
-								MyStatistics.getInstance().getInitialTimeDelayAfterNewConnection()
-									.remove(st.getMyId());
-								MyStatistics.getInstance().getInitialTimeWithoutConnection()
-									.remove(st.getMyId());
-								st.setLockedToMigration(true);
-								st.setTimeFinishDeliveryVm(-1.0);
-								saveMigration(st);
-								//st.setPreCopy(false);
-							}
-						}
-					}
+				}
 			else {
 				//Only the connected smartThings
 				if (st.getSourceAp() != null && (!st.isLockedToMigration())) {
@@ -1544,20 +1523,24 @@ public class FogDevice extends PowerDatacenter {
 			if(sst!= null) {
 					if(tuple.getDestModuleName().equals("AppModuleVm_"+parts[1]) && this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() != null){
 						System.out.println(this.getName()+" ++++++++"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
-						sst.getDestinationServerCloudlet().processTupleArrival(ev);
+						//sst.getDestinationServerCloudlet().processTupleArrival(ev);
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY() + " SimTime " + ev.eventTime());
 					}
 					if(this == sst.getDestinationServerCloudlet()) {
 						System.out.println(this.getName()+" ========"+" Tuple: "+tuple.getCloudletId() + "  SimTime: "+ev.eventTime());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
 	
 					}
 					if(this == sst.getVmLocalServerCloudlet() && sst.getDestinationServerCloudlet() == null) {
 						System.out.println(this.getName()+" -+-+-+-+"+" Tuple: "+tuple.getCloudletId() +" Dest Module: "+ tuple.getDestModuleName() + "  SimTime: "+ev.eventTime());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
 	
 					}
 					if(sst.getVmLocalServerCloudlet() != this) {
 						System.out.println("\n************* Smart Thing Source AP: "+sst.getSourceAp()+" "+sst.getVmLocalServerCloudlet().getName()+"***************\n");
 						double a = getNetworkDelay(sst.getVmLocalServerCloudlet().getId(), this.getId());
 						NetworkUsageMonitor.sendingTuple(a, tuple.getCloudletFileSize());
+					//	System.out.println(sst.getName() + " " + tuple.getDestModuleName()+" "+ sst.getCoord().getCoordX()+" "+ sst.getCoord().getCoordY()+ " SimTime " + ev.eventTime());
 	
 					}
 				}
@@ -2178,54 +2161,32 @@ public class FogDevice extends PowerDatacenter {
 		return null;
 	}
 	public FogDevice getNextSC(MobileDevice st) {
-	int index = 0;
-	int a = FindInPath(st);
-	MobileDevice TempST = new MobileDevice();
-	TempST.path=st.path;
-	List<String[]> s=null;
-	s = TempST.path.subList(a,TempST.path.size());
-	for(String p[]:s) {
-		int x = (int)Math.round(Double.parseDouble(p[2]));
-		int y = (int)Math.round(Double.parseDouble(p[3]));
-		TempST.coord = new Coordinate();
-		//TempST.coord.setCoordY(0);
-		TempST.setCoord(x,y);
-		TempST.setSourceAp(st.getSourceAp());
-		double distance = Distances.checkDistance(TempST.getCoord(), TempST.getSourceAp()
-			.getCoord());
-		if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
-			&& distance < MaxAndMin.AP_COVERAGE) {
-			index = Migration.nextAp(MobileController.getApDevices(), TempST);
-			if (index >= 0) {// index isn't negative
-				return MobileController.getApDevices().get(index).getServerCloudlet();
+		int index = 0;
+		int a = FindInPath(st);
+		MobileDevice TempST = new MobileDevice();
+		TempST.path=st.path;
+		List<String[]> s=null;
+		s = TempST.path.subList(a,TempST.path.size());
+		for(String p[]:s) {
+			int x = (int)Math.round(Double.parseDouble(p[2]));
+			int y = (int)Math.round(Double.parseDouble(p[3]));
+			TempST.coord = new Coordinate();
+			//TempST.coord.setCoordY(0);
+			TempST.setCoord(x,y);
+			TempST.setSourceAp(st.getSourceAp());
+			double distance = Distances.checkDistance(TempST.getCoord(), TempST.getSourceAp()
+				.getCoord());
+			if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
+				&& distance < MaxAndMin.AP_COVERAGE) {
+				index = Migration.nextAp(MobileController.getApDevices(), TempST);
+				if (index >= 0) {// index isn't negative
+					return MobileController.getApDevices().get(index).getServerCloudlet();
 			}
 		}
+		//return null;
 	}
-	return null;
-}
-//	public FogDevice getNextSC(MobileDevice st) {
-//		int index = 0;
-//		int a = FindInPath(st);
-//		MobileDevice TempST = st;
-//		List<String[]> s=null;
-//		s = TempST.path.subList(a,TempST.path.size());
-//		for(String p[]:s) {
-//			int x = (int)Math.round(Double.parseDouble(p[2]));
-//			int y = (int)Math.round(Double.parseDouble(p[3]));
-//
-//			TempST.setCoord(x,y);
-//			double distance = Distances.checkDistance(TempST.getCoord(), TempST.getSourceAp()
-//				.getCoord());
-//			if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
-//				&& distance < MaxAndMin.AP_COVERAGE) {
-//				index = Migration.nextAp(MobileController.getApDevices(), TempST);
-//				if (index >= 0) {// index isn't negative
-//					return MobileController.getApDevices().get(index).getServerCloudlet();
-//				}
-//			}
-//		}
-//		return null;
-//	}
+		return null;
+	}
 //	public double distance(int xx1,String xx2,int yy1,String yy2) {
 //		double x1=(xx1);
 //		double x2=Double.parseDouble(xx2);
@@ -2241,13 +2202,13 @@ public class FogDevice extends PowerDatacenter {
 		for(String p[]:st.path) {
 			double x = Math.abs((Double)(st.getLastProcessTime()/1000) - Double.parseDouble(p[0]));
 			if(x>y) {
-//					System.out.println(">>>> X = "+x + "	T:   = "+st.getLastProcessTime());
-//					System.out.println(">>>> Y = "+y + " Index :   "+i);
-//
-//					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
-//					System.out.println(st.getLastProcessTime()+" Actual Location : "+st.getCoord().getCoordX()+","+st.getCoord().getCoordY());
-//					System.out.println(st.path.get(i)[0]+" Pred Location : "+st.path.get(i)[2]+","+st.path.get(i)[3]);
-//					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+					System.out.println(">>>> X = "+x + "	T:   = "+st.getLastProcessTime());
+					System.out.println(">>>> Y = "+y + " Index :   "+i);
+
+					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
+					System.out.println(st.getLastProcessTime()+" Actual Location : "+st.getCoord().getCoordX()+","+st.getCoord().getCoordY());
+					System.out.println(st.path.get(i)[0]+" Pred Location : "+st.path.get(i)[2]+","+st.path.get(i)[3]);
+					System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&");
 				
 				return i;
 				

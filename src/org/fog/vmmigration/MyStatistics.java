@@ -7,10 +7,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.fog.vmmobile.LogMobile;
 import org.fog.placement.MobileController;
 import org.fog.vmmobile.AppExample;
-import org.fog.vmmobile.LogMobile;
-
 public class MyStatistics {
 	private static MyStatistics instance;
 
@@ -208,10 +207,11 @@ public class MyStatistics {
 			double correntAverage = getAverageDelayAfterNewConnection();
 			double correntCount = getMyCountDelayAfterNewConnection();
 			getDelayAfterNewConnection().put(id, delay);
-			//setAverageDelayAfterNewConnection((correntAverage * correntCount + delay)
-			//	/ (correntCount + 1));
+			setAverageDelayAfterNewConnection((correntAverage * correntCount + delay)
+				/ (correntCount + 1));
+			////////////////////////////////////
 			if(AppExample.getPolicyReplicaVM() == 4) {
-				double plus = ((((MobileController.LostTupleVol)/(correntCount+1))/MobileController.SumBandwidth/(getMyCountLowestLatency()+1))+MobileController.SumDelayBet/(getMyCountLowestLatency()+1))*1000;
+				double plus = ((((MobileController.LostTupleVol)/(correntCount+1))/MobileController.SumBandwidth/(getMyCountLowestLatency()+1))+MobileController.SumDelayBet/(getMyCountLowestLatency()+1));//*1000;
 				System.out.println("LostTupleVol : "+ MobileController.LostTupleVol);
 				System.out.println("SumBandwidth : "+ MobileController.SumBandwidth);
 				System.out.println("MyCountLowestLatency() : "+ getMyCountLowestLatency());
@@ -224,6 +224,7 @@ public class MyStatistics {
 				setAverageDelayAfterNewConnection((correntAverage * correntCount + delay)
 						/ (correntCount + 1));
 			}
+			///////////////////////////////////
 			if (!getMaxDelayAfterNewConnection().containsKey(id)) {
 				getMaxDelayAfterNewConnection().put(id, 0.0);
 			}

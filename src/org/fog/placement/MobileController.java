@@ -1,6 +1,7 @@
 package org.fog.placement;
 
 import java.awt.image.ReplicateScaleFilter;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,13 +51,12 @@ import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
-import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmobile.AppExample;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
 import java.util.concurrent.ThreadLocalRandom;
-
+import org.fog.vmmigration.PRECOPYLIVE;
 public class MobileController extends SimEntity {
 
 	//public static int counter_migrror=0;
@@ -86,10 +86,10 @@ public class MobileController extends SimEntity {
 	static final int numOfMobilesPerDept = 4;
 	private static Random rand;
 	public static List <String> OldSC = null;
+	
 	public static double LostTupleVol=0;
 	public static double SumBandwidth = 0;
 	public static double SumDelayBet = 0;
-	
 	
 	public MobileController() {
 
@@ -404,25 +404,27 @@ public class MobileController extends SimEntity {
 				if (!st.isLockedToHandoff()) {
 					double distance = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 						.getCoord());
-					
+
+		//////////////////////////////////////////////////////			
 					if(AppExample.getPolicyReplicaVM() == 4) {
 						FogDevice NSC = st.getNextSC(st);
 						if(NSC!=null) {
-							double distanceNext = Distances.checkDistance(st.getCoord(), st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st))
+							double distanceNext = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 									.getCoord());
-							if(distanceNext >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && distance < MaxAndMin.AP_COVERAGE && !st.getPreCopy()) {
+							if(distanceNext > MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && !st.getPreCopy()) {
 								st.setPreCopy(true);
 								System.out.println("Location when PreCopy Start: "+ st.getCoord().getCoordX()+" "+st.getCoord().getCoordY());
 								System.out.println("Next AP Location: " +st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getName() + " "+ st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX()+" "+st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX());
 							}
 						}
-					}
-
+					}					
+		/////////////////////////////////////////////////////
+					
 					System.out.println("Distance " + distance + "Diff "
 						+ (MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF) + " max "
 						+ MaxAndMin.AP_COVERAGE);
-					if ((distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
-						&& distance < MaxAndMin.AP_COVERAGE)) {
+					if (distance >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF
+						&& distance < MaxAndMin.AP_COVERAGE) {
 						index = Migration.nextAp(getApDevices(), st);
 						if (index >= 0) {// index isn't negative
 							st.setDestinationAp(getApDevices().get(index));
@@ -452,7 +454,7 @@ public class MobileController extends SimEntity {
 										MobileEvents.CONNECT_ST_TO_SC, st);
 								}
 
-								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3 && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 4) {
+								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -488,19 +490,18 @@ public class MobileController extends SimEntity {
 									send(st.getVmLocalServerCloudlet().getId(),delay,
 										MobileEvents.DELIVERY_VM, st);
 									}
-							}
-							if(AppExample.getPolicyReplicaVM()==4) {
-								SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
-								if(st.getDestinationServerCloudlet()!=null) {
-								//SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
+								if(AppExample.getPolicyReplicaVM()==4) {
+									SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
+									if(st.getDestinationServerCloudlet()!=null) {
+									//SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
+									}
+									handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection();///1000;
 								}
-								handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection();///1000;
 							}
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);
-							st.setPreCopy(false);
-
+							
 							
 							System.out.println("HANDOFF DONE");
 
@@ -635,7 +636,8 @@ public class MobileController extends SimEntity {
 			e.printStackTrace();
 		}
 	}
-
+	double ecc=0;/////////////////////////////////////////////////////////////////////////////////
+	double eca=0;/////////////////////////////////////////////////////////////////////////////////
 	private void printPowerDetails() {
 		double energyConsumedMean = 0.0;
 		int j = 0;
@@ -803,6 +805,7 @@ public class MobileController extends SimEntity {
 				+ String.valueOf(NetworkUsageMonitor.getNetworkUsage()) + '\t' + CloudSim.clock(),
 			"totalNetworkUsage.txt");
 	}
+	double mdt=0;/////////////////////////////////////////////////////////////////////////////
 
 	private void printMigrationsDetalis() {
 		System.out.println("=========================================");
@@ -1128,20 +1131,23 @@ public class MobileController extends SimEntity {
 		boolean exists = tempFile.exists();
 		if(!exists) {
 			printResults("Method	Total Network Usage"+ '\t'
-				+ "Average Delay After New Connection"+ '\t'+"Lost Tuple (%)"+ '\t'+"Average Downtime"+'\t'+ "Input Parameters ", OutFileName);
+				+ "Average Delay After New Connection"+ '\t'+"Lost Tuple (%)"+ '\t'+"Average Downtime"+'\t'+ "Input Parameters "+'\t'+ "Total energy consumed Coudlets" +'\t'+ "Total energy consumed AP" +'\t'+ "Migration' network usage (total)" +'\t'+ "Migration' network usage (mean)" +'\t'+ "Total of migrations" +'\t'+ "Total of handoff" +'\t'+ "Different Cloudlets reached along the user's path" +'\t'+ "Max Downtime" , OutFileName);
 			printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
 					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
 					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
 					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
-					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg),
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg+"\t"+ecc+"\t"+eca+"\t"+NetworkUsageMonitor.getNetWorkUsageInMigration()+"\t"+NetworkUsageMonitor.getNetWorkUsageInMigration()
+					/ MyStatistics.getInstance().getTotalMigrations()+"\t"+MyStatistics.getInstance().getTotalMigrations()+"\t"+MyStatistics.getInstance().getTotalHandoff()+"\t"+MyStatistics.getInstance().getMyCountLowestLatency()+"\t"+mdt),
 					OutFileName);
+			
 		}
 		else {
 		printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+String.valueOf(NetworkUsageMonitor.getNetworkUsage())+ '\t'
 					+String.valueOf(MyStatistics.getInstance().getAverageDelayAfterNewConnection()+"\t"
 					+((double) MyStatistics.getInstance().getMyCountLostTuple() / MyStatistics
 					.getInstance().getMyCountTotalTuple()) * 100 + "%"+ '\t'
-					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg),
+					+String.valueOf(MyStatistics.getInstance().getAverageDowntime())+"\t"+AppExample.arg+"\t"+ecc+"\t"+eca+"\t"+NetworkUsageMonitor.getNetWorkUsageInMigration()+"\t"+NetworkUsageMonitor.getNetWorkUsageInMigration()
+					/ MyStatistics.getInstance().getTotalMigrations()+"\t"+MyStatistics.getInstance().getTotalMigrations()+"\t"+MyStatistics.getInstance().getTotalHandoff()+"\t"+MyStatistics.getInstance().getMyCountLowestLatency()+"\t"+mdt),
 					OutFileName);
 		}
 	}

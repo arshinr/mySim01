@@ -1,6 +1,7 @@
 package org.fog.vmmobile;
 
 import java.io.BufferedReader;
+import org.fog.vmmigration.PRECOPYLIVE;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -68,7 +69,6 @@ import org.fog.vmmigration.LowestDistBwSmartThingServerCloudlet;
 import org.fog.vmmigration.LowestLatency;
 import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.MyStatistics;
-import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmigration.PrepareCompleteVM;
 import org.fog.vmmigration.PrepareContainerVM;
 import org.fog.vmmigration.PrepareLiveMigration;
@@ -107,10 +107,7 @@ public class AppExample {
 	static final int numOfDepts = 1;
 	static final int numOfMobilesPerDept = 4;
 	static final double EEG_TRANSMISSION_TIME = 10;
-
 	public static String arg = "";
-
-	
 	/**
 	 * @param args
 	 * @author Marcio Moraes Lopes
@@ -194,8 +191,6 @@ public class AppExample {
 		for(int i=0;i<10;i++) {
 			arg+=" "+args[i];
 		}
-		
-		
 		/**
 		 * STEP 2: CREATE ALL DEVICES -> example from: CloudSim - example5.java
 		 **/
@@ -689,7 +684,7 @@ public class AppExample {
 			migrationTechnique = new MIGRROR(getMigPointPolicy());
 		}else if (getPolicyReplicaVM() == Policies.PRECOPYLIVE) {
 			migrationTechnique = new PRECOPYLIVE(getMigPointPolicy());
-			}
+		}
 
 		DeterministicDistribution distribution0 = new DeterministicDistribution(
 			EEG_TRANSMISSION_TIME);// +(i*getRand().nextDouble()));
@@ -817,7 +812,7 @@ public class AppExample {
 
 		// CloudSim Pe (Processing Element) class represents CPU unit, defined in terms of Millions Instructions Per Second (MIPS) rating
 		List<Pe> peList = new ArrayList<>();
-		int mips = 3234;
+		int mips = 10000;
 		// 3. Create PEs and add these into a list.
 		// need to store Pe id and MIPS Rating - to CloudSim
 		peList.add(new Pe(0, new PeProvisionerOverbooking(mips)));
@@ -923,7 +918,7 @@ public class AppExample {
 				// CloudSim Pe (Processing Element) class represents CPU unit,
 				// defined in terms of Millions Instructions Per Second (MIPS) rating
 				List<Pe> peList = new ArrayList<>();
-				int mips = 3234;
+				int mips = 10000;
 				// 3. Create PEs and add these into a list.
 				// need to store Pe id and MIPS Rating - to CloudSim
 				peList.add(new Pe(0, new PeProvisionerOverbooking(mips)));

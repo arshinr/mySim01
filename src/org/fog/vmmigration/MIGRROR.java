@@ -1,5 +1,6 @@
 package org.fog.vmmigration;
 
+import org.cloudbus.cloudsim.NetworkTopology;
 import org.fog.entities.MobileDevice;
 import org.fog.localization.Distances;
 import org.fog.vmmobile.constants.Directions;
