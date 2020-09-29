@@ -1,7 +1,6 @@
 package org.fog.vmmobile;
 
 import java.io.BufferedReader;
-import org.fog.vmmigration.PRECOPYLIVE;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -69,6 +68,7 @@ import org.fog.vmmigration.LowestDistBwSmartThingServerCloudlet;
 import org.fog.vmmigration.LowestLatency;
 import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.MyStatistics;
+import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmigration.PrepareCompleteVM;
 import org.fog.vmmigration.PrepareContainerVM;
 import org.fog.vmmigration.PrepareLiveMigration;
@@ -107,7 +107,10 @@ public class AppExample {
 	static final int numOfDepts = 1;
 	static final int numOfMobilesPerDept = 4;
 	static final double EEG_TRANSMISSION_TIME = 10;
+
 	public static String arg = "";
+	public static double[][] DT;// = new double[][];
+	
 	/**
 	 * @param args
 	 * @author Marcio Moraes Lopes
@@ -187,10 +190,12 @@ public class AppExample {
 		setMobilityPredictionError(Integer.parseInt(args[8]));
 		setLatencyBetweenCloudlets(Double.parseDouble(args[9]));
 
-		
+		DT = new double[Integer.parseInt(args[4])][100];
 		for(int i=0;i<10;i++) {
 			arg+=" "+args[i];
 		}
+		
+		
 		/**
 		 * STEP 2: CREATE ALL DEVICES -> example from: CloudSim - example5.java
 		 **/
@@ -684,7 +689,7 @@ public class AppExample {
 			migrationTechnique = new MIGRROR(getMigPointPolicy());
 		}else if (getPolicyReplicaVM() == Policies.PRECOPYLIVE) {
 			migrationTechnique = new PRECOPYLIVE(getMigPointPolicy());
-		}
+			}
 
 		DeterministicDistribution distribution0 = new DeterministicDistribution(
 			EEG_TRANSMISSION_TIME);// +(i*getRand().nextDouble()));
@@ -812,7 +817,7 @@ public class AppExample {
 
 		// CloudSim Pe (Processing Element) class represents CPU unit, defined in terms of Millions Instructions Per Second (MIPS) rating
 		List<Pe> peList = new ArrayList<>();
-		int mips = 10000;
+		int mips = 3234;
 		// 3. Create PEs and add these into a list.
 		// need to store Pe id and MIPS Rating - to CloudSim
 		peList.add(new Pe(0, new PeProvisionerOverbooking(mips)));
@@ -918,7 +923,7 @@ public class AppExample {
 				// CloudSim Pe (Processing Element) class represents CPU unit,
 				// defined in terms of Millions Instructions Per Second (MIPS) rating
 				List<Pe> peList = new ArrayList<>();
-				int mips = 10000;
+				int mips = 3234;
 				// 3. Create PEs and add these into a list.
 				// need to store Pe id and MIPS Rating - to CloudSim
 				peList.add(new Pe(0, new PeProvisionerOverbooking(mips)));
@@ -1034,37 +1039,38 @@ public class AppExample {
 		 * Connecting the application modules (vertices) in the application
 		 * model (directed graph) with edges
 		 */
+		int a=1;
 		if (EEG_TRANSMISSION_TIME >= 10)
 			// adding edge from EEG (sensor) to Client module carrying tuples of type EEG
-			application.addAppEdge("EEG" + myId, "client" + myId, 966, 54,
+			application.addAppEdge("EEG" + myId, "client" + myId, a*966, 54,
 				"EEG" + myId, Tuple.UP, AppEdge.SENSOR);
 		else
-			application.addAppEdge("EEG" + myId, "client" + myId, 966, 54,
+			application.addAppEdge("EEG" + myId, "client" + myId, a*966, 54,
 				"EEG" + myId, Tuple.UP, AppEdge.SENSOR);
 
 		// adding edge from Client to Concentration Calculator module carrying tuples of type _SENSOR
-		application.addAppEdge("client" + myId, userVm.getName(), 966, 54,
+		application.addAppEdge("client" + myId, userVm.getName(), a*966, 54,
 			"_SENSOR" + myId, Tuple.UP, AppEdge.MODULE);
 
 		// adding periodic edge (period=1000ms) from Concentration Calculator to
 		//Connector module carrying tuples of type PLAYER_GAME_STATE
-		application.addAppEdge(userVm.getName(), userVm.getName(), 1000, 966,
+		application.addAppEdge(userVm.getName(), userVm.getName(), a*1000, 966,
 			54, "PLAYER_GAME_STATE" + myId, Tuple.UP, AppEdge.MODULE);
 		// adding edge from Concentration Calculator to Client module carrying
 		//tuples of type CONCENTRATION
-		application.addAppEdge(userVm.getName(), "client" + myId, 2439, 87,
+		application.addAppEdge(userVm.getName(), "client" + myId, a*2439, 87,
 			"CONCENTRATION" + myId, Tuple.DOWN, AppEdge.MODULE);
 		// adding periodic edge (period=1000ms) from Connector to Client module
 		//carrying tuples of type GLOBAL_GAME_STATE
-		application.addAppEdge(userVm.getName(), "client" + myId, 2439, 28,
+		application.addAppEdge(userVm.getName(), "client" + myId, a*2439, 28,
 			87, "GLOBAL_GAME_STATE" + myId, Tuple.DOWN, AppEdge.MODULE);
 		// adding edge from Client module to Display (actuator) carrying tuples
 		// of type SELF_STATE_UPDATE
-		application.addAppEdge("client" + myId, "DISPLAY" + myId, 2439, 87,
+		application.addAppEdge("client" + myId, "DISPLAY" + myId, a*2439, 87,
 			"SELF_STATE_UPDATE" + myId, Tuple.DOWN, AppEdge.ACTUATOR);
 		// adding edge from Client module to Display (actuator) carrying tuples
 		// of type GLOBAL_STATE_UPDATE
-		application.addAppEdge("client" + myId, "DISPLAY" + myId, 2439, 87,
+		application.addAppEdge("client" + myId, "DISPLAY" + myId, a*2439, 87,
 			"GLOBAL_STATE_UPDATE" + myId, Tuple.DOWN, AppEdge.ACTUATOR);
 
 		/*

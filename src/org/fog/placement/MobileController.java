@@ -1,7 +1,6 @@
 package org.fog.placement;
 
 import java.awt.image.ReplicateScaleFilter;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -51,12 +50,13 @@ import org.fog.vmmigration.MIGRROR;
 import org.fog.vmmigration.Migration;
 import org.fog.vmmigration.MyStatistics;
 import org.fog.vmmigration.NextStep;
+import org.fog.vmmigration.PRECOPYLIVE;
 import org.fog.vmmobile.AppExample;
 import org.fog.vmmobile.LogMobile;
 import org.fog.vmmobile.constants.MaxAndMin;
 import org.fog.vmmobile.constants.MobileEvents;
 import java.util.concurrent.ThreadLocalRandom;
-import org.fog.vmmigration.PRECOPYLIVE;
+
 public class MobileController extends SimEntity {
 
 	//public static int counter_migrror=0;
@@ -86,10 +86,10 @@ public class MobileController extends SimEntity {
 	static final int numOfMobilesPerDept = 4;
 	private static Random rand;
 	public static List <String> OldSC = null;
-	
 	public static double LostTupleVol=0;
 	public static double SumBandwidth = 0;
 	public static double SumDelayBet = 0;
+	
 	
 	public MobileController() {
 
@@ -404,22 +404,20 @@ public class MobileController extends SimEntity {
 				if (!st.isLockedToHandoff()) {
 					double distance = Distances.checkDistance(st.getCoord(), st.getSourceAp()
 						.getCoord());
-
-		//////////////////////////////////////////////////////			
+					
 					if(AppExample.getPolicyReplicaVM() == 4) {
 						FogDevice NSC = st.getNextSC(st);
 						if(NSC!=null) {
-							double distanceNext = Distances.checkDistance(st.getCoord(), st.getSourceAp()
+							double distanceNext = Distances.checkDistance(st.getCoord(), st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st))
 									.getCoord());
-							if(distanceNext > MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && !st.getPreCopy()) {
+							if(distanceNext >= MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_START_PRECOPY && distance < MaxAndMin.AP_COVERAGE && !st.getPreCopy()) {
 								st.setPreCopy(true);
 								System.out.println("Location when PreCopy Start: "+ st.getCoord().getCoordX()+" "+st.getCoord().getCoordY());
 								System.out.println("Next AP Location: " +st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getName() + " "+ st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX()+" "+st.getVmLocalServerCloudlet().getNextAp(st.getNextSC(st)).getCoord().getCoordX());
 							}
 						}
-					}					
-		/////////////////////////////////////////////////////
-					
+					}
+
 					System.out.println("Distance " + distance + "Diff "
 						+ (MaxAndMin.AP_COVERAGE - MaxAndMin.MAX_DISTANCE_TO_HANDOFF) + " max "
 						+ MaxAndMin.AP_COVERAGE);
@@ -434,8 +432,13 @@ public class MobileController extends SimEntity {
 							double handoffTime = MaxAndMin.MIN_HANDOFF_TIME
 								+ (MaxAndMin.MAX_HANDOFF_TIME - MaxAndMin.MIN_HANDOFF_TIME)
 								* getRand().nextDouble();
-							float handoffLocked = (float) (handoffTime * 4)+ 10*(float)(ThreadLocalRandom.current().nextDouble()); 
-;
+							float handoffLocked = 0;
+							if(AppExample.getPolicyReplicaVM() == 3) {
+								 handoffLocked = (float) (handoffTime * 4)+ 10*(float)(ThreadLocalRandom.current().nextDouble()); 
+							}
+							else {
+								 handoffLocked = (float) (handoffTime * 4);
+							}
 							int delayConnection = 100; // connection between SmartT and ServerCloudlet
 
 							if (!st.getDestinationAp().getServerCloudlet()
@@ -453,8 +456,7 @@ public class MobileController extends SimEntity {
 										handoffTime + delayConnection,
 										MobileEvents.CONNECT_ST_TO_SC, st);
 								}
-
-								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3) {
+								if (st.isPostCopyStatus() && !st.isMigStatus() && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 3 && st.getVmLocalServerCloudlet().getPolicyReplicaVM() != 4) {
 									if (!st.isMigStatusLive()) {
 										st.setMigStatusLive(true);
 										double newMigTime = migrationTimeToLiveMigration(st);
@@ -475,7 +477,7 @@ public class MobileController extends SimEntity {
 								}
 							}
 
-							if(st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 3 || st.getVmLocalServerCloudlet().getPolicyReplicaVM() == 4) {
+							if(AppExample.getPolicyReplicaVM() == 3 || AppExample.getPolicyReplicaVM() == 4) {
 								int srcId = getId();
 								int entityId = 0;
 								if(st.getDestinationServerCloudlet()!=null) {
@@ -490,24 +492,24 @@ public class MobileController extends SimEntity {
 									send(st.getVmLocalServerCloudlet().getId(),delay,
 										MobileEvents.DELIVERY_VM, st);
 									}
-								if(AppExample.getPolicyReplicaVM()==4) {
-									SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
-									if(st.getDestinationServerCloudlet()!=null) {
-									//SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
-									}
-									handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection();///1000;
+							}
+							if(AppExample.getPolicyReplicaVM()==4) {
+								SumBandwidth+=st.getVmLocalServerCloudlet().getUplinkBandwidth();
+								if(st.getDestinationServerCloudlet()!=null) {
+								//SumDelayBet+= getNetworkDelay(st.getVmLocalServerCloudlet().getId(), st.getDestinationServerCloudlet().getId());
 								}
+								handoffLocked += MyStatistics.getInstance().getAverageDelayAfterNewConnection();///1000;
 							}
 							send(st.getSourceAp().getId(), handoffTime, MobileEvents.START_HANDOFF,st);
 							send(st.getDestinationAp().getId(), handoffLocked,
 								MobileEvents.UNLOCKED_HANDOFF, st);
 							
-							
-							System.out.println("HANDOFF DONE");
 
 							
 							if(st.getMigrationTechnique() instanceof MIGRROR || st.getMigrationTechnique() instanceof PRECOPYLIVE) {
-							st.setMigTime(handoffLocked);	
+								st.setPreCopy(false);
+								System.out.println("HANDOFF DONE");
+								st.setMigTime(handoffLocked);	
 							}
 							MyStatistics.getInstance().setTotalHandoff(1);
 
@@ -622,7 +624,7 @@ public class MobileController extends SimEntity {
 		return null;
 	}
 
-	public void printResults(String a, String filename) {
+	public static void printResults(String a, String filename) {
 		try (FileWriter fw1 = new FileWriter(filename, true);
 			BufferedWriter bw1 = new BufferedWriter(fw1);
 			PrintWriter out1 = new PrintWriter(bw1))
@@ -807,6 +809,7 @@ public class MobileController extends SimEntity {
 	}
 	double mdt=0;/////////////////////////////////////////////////////////////////////////////
 
+	
 	private void printMigrationsDetalis() {
 		System.out.println("=========================================");
 		System.out.println("==============MIGRATIONS=================");
@@ -919,8 +922,17 @@ public class MobileController extends SimEntity {
 		//System.out.println("\n\n==========================================");
 		//System.out.println("Counter Migrror: "+counter_migrror);
 		//System.out.println("Counter Delivery: "+counter_Delivery);
-
-
+		/////////////////////////////////////////////////////////////////////////
+		//for(int ii=0;ii<2;ii++) {
+		//	for(int j=0;j<100;j++) {
+		//		System.out.print(AppExample.DT[ii][j]+"	");
+		//	}
+		//	System.out.println(" ");
+		//}
+		
+		printSTDandMeanEachRow(AppExample.DT);
+		printSTDandMeanFull(AppExample.DT);
+////////////////////////////////////////////////////////////////////////////
 	}
 
 	public void submitApplication(Application application, int delay) {
@@ -1171,5 +1183,118 @@ public class MobileController extends SimEntity {
 			return "PRECOPYLIVE";
 		}
 		return null;
+	}
+	public static int countNonZeros(double a[]) {
+		int count=0;
+		for(int i=0;i<a.length;i++) {
+			if(a[i]==0) {
+				count++;
+			}
+		}
+		return a.length-count;
+	}
+	public static int countNonZeros(double a[][]) {
+		int count = 0;
+		for(int i=0;i<a.length;i++) {
+			for(int j=0;j<a[0].length;j++) {
+				if(a[i][j]==0) {
+					count++;
+				}
+			}
+		}
+		int dims = a.length * a[0].length;
+		return dims - count;
+	}
+	public static void printSTDandMeanEachRow(double input[][]){
+		double[] mean = new double[input.length];
+		double[] SumSubP2 = new double[input.length];
+		double[] sumrow= new double[input.length];
+
+		for(int i=0;i<input.length;i++) {
+			for(int j=0;j<input[0].length;j++) {
+				sumrow[i] += input[i][j];
+			}
+			mean[i]=sumrow[i]/countNonZeros(getRow(input,i));
+			for(int k=0;k<countNonZeros(getRow(input,i));k++) {
+				SumSubP2[i] += Math.pow(Math.abs(input[i][k])-Math.abs(mean[i]),2);
+			}
+		}
+		double[] std = new double[input.length];
+		for(int i=0;i<input.length;i++) {
+			std[i]= Math.sqrt(SumSubP2[i]/countNonZeros(getRow(input,i)));
+		}
+		System.out.println("Mean	STD");
+	//	for(int i=0;i<input.length;i++) {
+	//		System.out.println(mean[i]+"	"+std[i]);
+	//	}
+		////////////////////////////////////////////////////////////////////
+		String directoryName = "ravesh";
+	    File directory = new File(directoryName);
+	    if (! directory.exists()){
+	        directory.mkdir();
+	    }
+		
+		String OutFileName = "ravesh/STDs.txt";
+		File tempFile = new File(OutFileName);
+		boolean exists = tempFile.exists();
+		if(!exists) {
+			printResults("Method	Input	ST	Mean	STD", OutFileName);
+			for(int i=0;i<input.length;i++) {
+				printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+AppExample.arg+"	st"+i+"	"+mean[i]+"	"+std[i],OutFileName);
+			}
+		}
+		else {
+			for(int i=0;i<input.length;i++) {
+				printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+AppExample.arg+"	st"+i+"	"+mean[i]+"	"+std[i],OutFileName);
+			}		}		
+		
+		
+	}
+	public static void printSTDandMeanFull(double input[][]) {
+		double mean = 0;
+		double sum = 0;
+		for(int i=0;i<input.length;i++) {
+			for(int j=0;j<input[0].length;j++) {
+				sum += input[i][j];
+			}
+		}
+		mean=sum/countNonZeros(input);
+		double std = 0;
+		double sumsubp2=0;
+		for(int i=0;i<input.length;i++) {
+			for(int j=0;j<input[0].length;j++) {
+				if(input[i][j]!=0) {
+					sumsubp2 += Math.pow(Math.abs(input[i][j])-Math.abs(mean),2);
+				}
+			}
+		}
+		std = Math.sqrt(sumsubp2/countNonZeros(input));
+		//System.out.println("Mean	STD");
+		//System.out.println(mean+"	"+std);
+		
+		String directoryName = "ravesh";
+	    File directory = new File(directoryName);
+	    if (! directory.exists()){
+	        directory.mkdir();
+	    }
+		
+		String OutFileName = "ravesh/STD.txt";
+		File tempFile = new File(OutFileName);
+		boolean exists = tempFile.exists();
+		if(!exists) {
+			printResults("Method	Input	Mean	STD", OutFileName);
+			printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+AppExample.arg+"	"+mean+"	"+std,OutFileName);
+		}
+		else {
+			printResults(migmethod(AppExample.getPolicyReplicaVM())+"	"+AppExample.arg+"	"+mean+"	"+std,OutFileName);
+		}		
+		
+	}
+	public static double[] getRow(double input[][],int i) {
+		double[] row =  new double[100];
+		for(int j=0;j<100;j++) {
+			row[j] = input[i][j];
+		}
+		return row;
 	}
 }

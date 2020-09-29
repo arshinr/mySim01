@@ -29,5 +29,4 @@ public final class MaxAndMin {
 	public static final double SIZE_CONTAINER = 0.6;
 	public static final double PROCESS_CONTAINER = 1.3;
 	public static final double MAX_DISTANCE_TO_START_PRECOPY = 100;
-
 }
